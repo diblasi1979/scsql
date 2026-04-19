@@ -1,0 +1,59 @@
+services:
+  mysql-internal:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: scsql
+      MYSQL_USER: scsql
+      MYSQL_PASSWORD: scsqlpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - scsql-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-pscsqlpass", "-uscsql"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/src/ScSql.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      TZ: America/Argentina/Buenos_Aires
+      ConnectionStrings__InternalDatabase: server=mysql-internal;port=3306;database=scsql;user=scsql;password=scsqlpass
+      Jwt__Issuer: scsql-api
+      Jwt__Audience: scsql-admin
+      Jwt__Key: change-this-in-production-with-a-long-random-key
+      AdminUser__Username: admin
+      AdminUser__Password: admin123
+      Storage__RootPath: /app/storage
+      Storage__SqlPath: /app/storage/sql
+      Scheduler__PollSeconds: 5
+      Scheduler__CatchUpWindowDays: 7
+      Scheduler__TimeZoneId: America/Argentina/Buenos_Aires
+      ConnectionSecurity__EncryptionKey: scsql-dev-connection-key-change-in-production
+    ports:
+      - "2008:2008"
+    volumes:
+      - scsql-storage:/app/storage
+    depends_on:
+      mysql-internal:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:2008/api
+    ports:
+      - "1979:1979"
+    depends_on:
+      - api
+
+volumes:
+  scsql-storage:
+  scsql-mysql-data:
