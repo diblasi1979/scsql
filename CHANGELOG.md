@@ -4,6 +4,10 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## Unreleased
 
+### Changed
+
+- El sistema de toasts del frontend quedó preparado con variantes visuales `success`, `info`, `warning` y `error` para futuros flujos operativos.
+
 ## v0.1.1 - 2026-04-19
 
 ### Added

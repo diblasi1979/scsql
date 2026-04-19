@@ -13,7 +13,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 - Programación automática por día de semana y horario, con múltiples horarios por día.
 - Ejecución manual desde el panel.
 - Historial de ejecuciones, intentos, errores y duración.
-- Panel visual renovado con sidebar persistente, login centrado, modal de edición y acciones iconográficas compactas con tooltip.
+- Panel visual renovado con sidebar persistente, login centrado, modal de edición, acciones iconográficas compactas con tooltip y toasts visuales para feedback operativo.
 - Scheduler interno que reclama ocurrencias pendientes por horario y evita depender de una coincidencia exacta de minuto.
 - Scheduler con zona horaria explícita para ejecuciones automáticas consistentes dentro de Docker.
 - Persistencia administrativa en MySQL interno del sistema.

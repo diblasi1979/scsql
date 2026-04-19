@@ -663,6 +663,22 @@ pre {
   background: linear-gradient(135deg, rgba(15, 157, 122, 0.24), rgba(255, 159, 28, 0.22));
 }
 
+.app-toast--success .app-toast__icon {
+  background: linear-gradient(135deg, rgba(15, 157, 122, 0.24), rgba(255, 159, 28, 0.22));
+}
+
+.app-toast--info .app-toast__icon {
+  background: linear-gradient(135deg, rgba(42, 124, 255, 0.26), rgba(91, 44, 255, 0.24));
+}
+
+.app-toast--warning .app-toast__icon {
+  background: linear-gradient(135deg, rgba(255, 159, 28, 0.28), rgba(255, 95, 109, 0.2));
+}
+
+.app-toast--error .app-toast__icon {
+  background: linear-gradient(135deg, rgba(230, 75, 99, 0.28), rgba(148, 24, 58, 0.26));
+}
+
 .app-toast__copy {
   min-width: 0;
   flex: 1 1 auto;
@@ -678,6 +694,14 @@ pre {
   margin-top: 0.22rem;
   color: rgba(255, 255, 255, 0.82);
   line-height: 1.45;
+}
+
+.app-toast--warning .app-toast__copy p {
+  color: rgba(255, 244, 204, 0.9);
+}
+
+.app-toast--error .app-toast__copy p {
+  color: rgba(255, 222, 228, 0.9);
 }
 
 .app-toast__close {
