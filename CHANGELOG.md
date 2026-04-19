@@ -4,6 +4,8 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## Unreleased
 
+## v0.2.0 - 2026-04-19
+
 ### Added
 
 - Soporte de parámetros tipados para stored procedures en tareas administrativas, con tipos `string`, `integer`, `decimal`, `boolean` y `dateTime`.
