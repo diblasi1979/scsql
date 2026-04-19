@@ -7,7 +7,8 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 - Login local con usuario administrador inicial.
 - Panel administrativo en Vue 3.
 - Registro de conexiones remotas MySQL y SQL Server.
-- Subida y almacenamiento local de scripts `.sql` en el mismo servidor.
+- Edición y borrado de conexiones remotas MySQL y SQL Server desde el panel.
+- Subida, edición y almacenamiento local de scripts `.sql` en el mismo servidor.
 - Creación, edición y borrado de tareas contra archivo SQL o stored procedure.
 - Programación automática por día de semana y horario, con múltiples horarios por día.
 - Ejecución manual desde el panel.
@@ -30,7 +31,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 ## Limitaciones actuales
 
 - Todavía no hay rotación automática de la clave usada para cifrar credenciales externas.
-- No hay edición o borrado de conexiones ni scripts desde UI.
+- No hay aún reemplazo masivo, versionado o papelera para conexiones y scripts eliminados.
 - No hay refresh token, auditoría de cambios ni control de concurrencia distribuida.
 
 ## Ejecutar con Docker
@@ -56,8 +57,12 @@ Credenciales por defecto:
 - `POST /api/auth/login`
 - `GET /api/dashboard`
 - `GET/POST /api/connections`
+- `PUT /api/connections/{id}`
+- `DELETE /api/connections/{id}`
 - `POST /api/connections/{id}/test`
 - `GET/POST /api/scripts`
+- `PUT /api/scripts/{id}`
+- `DELETE /api/scripts/{id}`
 - `GET/POST /api/tasks`
 - `PUT /api/tasks/{id}`
 - `DELETE /api/tasks/{id}`
@@ -67,7 +72,7 @@ Credenciales por defecto:
 
 ## Próximos pasos recomendados
 
-1. Agregar edición y borrado de conexiones y scripts desde el panel.
+1. Añadir versionado o papelera de recuperación para scripts y conexiones eliminadas.
 2. Añadir rotación gestionada de la clave de cifrado para credenciales externas.
 3. Añadir parámetros tipados para stored procedures y validaciones más finas.
 4. Añadir health checks compuestos y métricas operativas.

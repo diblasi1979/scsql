@@ -290,6 +290,16 @@
         </form>
       </section>
     </div>
+
+    <ConfirmDialog
+      :open="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :detail="confirmState.detail"
+      confirm-label="Eliminar"
+      @cancel="closeConfirmDialog"
+      @confirm="confirmDelete"
+    />
   </section>
 </template>
 
@@ -297,6 +307,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { api, type ConnectionProfile, type SqlScriptAsset, type TaskDefinition } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const connections = ref<ConnectionProfile[]>([])
 const scripts = ref<SqlScriptAsset[]>([])
@@ -304,6 +315,14 @@ const tasks = ref<TaskDefinition[]>([])
 const feedback = ref('')
 const isEditModalOpen = ref(false)
 const editingTaskId = ref('')
+const confirmState = reactive({
+  open: false,
+  title: '',
+  message: '',
+  detail: '',
+})
+let pendingDeleteId = ''
+let pendingDeleteName = ''
 const dayLabels: Record<number, string> = {
   0: 'Dom',
   1: 'Lun',
@@ -434,11 +453,33 @@ async function runTask(id: string) {
 }
 
 async function deleteTask(task: TaskDefinition) {
-  await deleteTaskById(task.id, task.name)
+  openDeleteDialog(task.id, task.name)
 }
 
-async function deleteTaskById(id: string, name: string) {
-  if (!window.confirm(`Se eliminará la tarea "${name}". El historial de ejecuciones se conservará. ¿Continuar?`)) {
+function deleteTaskById(id: string, name: string) {
+  openDeleteDialog(id, name)
+}
+
+function openDeleteDialog(id: string, name: string) {
+  pendingDeleteId = id
+  pendingDeleteName = name
+  confirmState.title = 'Eliminar tarea'
+  confirmState.message = `Se eliminará la tarea "${name}".`
+  confirmState.detail = 'El historial de ejecuciones se conservará y la acción no se puede deshacer.'
+  confirmState.open = true
+}
+
+function closeConfirmDialog() {
+  confirmState.open = false
+  pendingDeleteId = ''
+  pendingDeleteName = ''
+}
+
+async function confirmDelete() {
+  const id = pendingDeleteId
+  const name = pendingDeleteName
+  closeConfirmDialog()
+  if (!id) {
     return
   }
 
@@ -446,7 +487,7 @@ async function deleteTaskById(id: string, name: string) {
   if (editingTaskId.value === id) {
     closeEditModal()
   }
-  feedback.value = 'Tarea eliminada.'
+  feedback.value = `Tarea "${name}" eliminada.`
   await loadAll()
 }
 

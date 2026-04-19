@@ -165,6 +165,39 @@ public sealed class CreateConnectionRequest
     public bool TrustServerCertificate { get; set; }
 }
 
+public sealed class UpdateConnectionRequest
+{
+    [Required]
+    public string Name { get; set; } = string.Empty;
+
+    [Required]
+    public DatabaseEngine Engine { get; set; }
+
+    [Required]
+    public string Server { get; set; } = string.Empty;
+
+    [Range(1, 65535)]
+    public int Port { get; set; }
+
+    [Required]
+    public string Database { get; set; } = string.Empty;
+
+    [Required]
+    public string Username { get; set; } = string.Empty;
+
+    public string? Password { get; set; }
+
+    public bool TrustServerCertificate { get; set; }
+
+    public bool Enabled { get; set; } = true;
+}
+
+public sealed class UpdateScriptRequest
+{
+    [Required]
+    public string OriginalName { get; set; } = string.Empty;
+}
+
 public sealed class CreateTaskRequest
 {
     [Required]

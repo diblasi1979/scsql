@@ -617,6 +617,24 @@ pre {
   box-shadow: 0 30px 90px rgba(27, 22, 64, 0.24);
 }
 
+.modal-card--compact {
+  width: min(100%, 640px);
+}
+
+.confirm-dialog__body {
+  margin: 0 0 1.2rem;
+}
+
+.confirm-dialog__body p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.confirm-dialog__detail {
+  margin-top: 0.7rem !important;
+  color: var(--muted);
+}
+
 .modal-span-full {
   grid-column: 1 / -1;
 }

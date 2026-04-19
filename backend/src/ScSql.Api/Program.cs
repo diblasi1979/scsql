@@ -156,6 +156,57 @@ adminGroup.MapPost("/connections", async (CreateConnectionRequest request, AppDb
     return Results.Created($"/api/connections/{connection.Id}", ToConnectionResponse(connection));
 });
 
+adminGroup.MapPut("/connections/{id:guid}", async (Guid id, UpdateConnectionRequest request, AppDbContext dbContext, ConnectionSecretProtector secretProtector, CancellationToken cancellationToken) =>
+{
+    var connection = await dbContext.Connections.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (connection is null)
+    {
+        return Results.NotFound();
+    }
+
+    connection.Name = request.Name;
+    connection.Engine = request.Engine;
+    connection.Server = request.Server;
+    connection.Port = request.Port;
+    connection.Database = request.Database;
+    connection.Username = request.Username;
+    connection.TrustServerCertificate = request.TrustServerCertificate;
+    connection.Enabled = request.Enabled;
+
+    if (!string.IsNullOrWhiteSpace(request.Password))
+    {
+        connection.Password = secretProtector.Protect(request.Password);
+    }
+
+    var relatedTasks = await dbContext.Tasks.Where(candidate => candidate.ConnectionId == id).ToListAsync(cancellationToken);
+    foreach (var task in relatedTasks)
+    {
+        task.Engine = request.Engine;
+    }
+
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.Ok(ToConnectionResponse(connection));
+});
+
+adminGroup.MapDelete("/connections/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var connection = await dbContext.Connections.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (connection is null)
+    {
+        return Results.NotFound();
+    }
+
+    var isUsedByTasks = await dbContext.Tasks.AnyAsync(candidate => candidate.ConnectionId == id, cancellationToken);
+    if (isUsedByTasks)
+    {
+        return Results.Conflict(new { message = "No se puede eliminar una conexión asociada a tareas existentes." });
+    }
+
+    dbContext.Connections.Remove(connection);
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.NoContent();
+});
+
 adminGroup.MapPost("/connections/{id:guid}/test", async (Guid id, AppDbContext dbContext, IEnumerable<IDatabaseExecutionEngine> engines, CancellationToken cancellationToken) =>
 {
     var connection = await dbContext.Connections.AsNoTracking().FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
@@ -193,6 +244,58 @@ adminGroup.MapPost("/scripts", async (HttpRequest request, AppDbContext dbContex
     dbContext.Scripts.Add(saved);
     await dbContext.SaveChangesAsync(cancellationToken);
     return Results.Created($"/api/scripts/{saved.Id}", saved);
+});
+
+adminGroup.MapPut("/scripts/{id:guid}", async (Guid id, HttpRequest request, AppDbContext dbContext, SqlFileStore fileStore, CancellationToken cancellationToken) =>
+{
+    if (!request.HasFormContentType)
+    {
+        return Results.BadRequest(new { message = "Se esperaba multipart/form-data." });
+    }
+
+    var script = await dbContext.Scripts.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (script is null)
+    {
+        return Results.NotFound();
+    }
+
+    var form = await request.ReadFormAsync(cancellationToken);
+    var originalName = form["originalName"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(originalName))
+    {
+        return Results.BadRequest(new { message = "Debe indicar el nombre del script." });
+    }
+
+    var file = form.Files.FirstOrDefault();
+    script.OriginalName = originalName.Trim();
+
+    if (file is not null)
+    {
+        await fileStore.ReplaceAsync(script, file, cancellationToken);
+    }
+
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.Ok(script);
+});
+
+adminGroup.MapDelete("/scripts/{id:guid}", async (Guid id, AppDbContext dbContext, SqlFileStore fileStore, CancellationToken cancellationToken) =>
+{
+    var script = await dbContext.Scripts.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (script is null)
+    {
+        return Results.NotFound();
+    }
+
+    var isUsedByTasks = await dbContext.Tasks.AnyAsync(candidate => candidate.SqlScriptId == id, cancellationToken);
+    if (isUsedByTasks)
+    {
+        return Results.Conflict(new { message = "No se puede eliminar un script asociado a tareas existentes." });
+    }
+
+    await fileStore.DeleteAsync(script, cancellationToken);
+    dbContext.Scripts.Remove(script);
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.NoContent();
 });
 
 adminGroup.MapGet("/tasks", async (AppDbContext dbContext, CancellationToken cancellationToken) =>

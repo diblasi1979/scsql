@@ -87,7 +87,7 @@
             <th>Motor</th>
             <th>Servidor</th>
             <th>Base</th>
-            <th></th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -105,15 +105,95 @@
             <td>{{ connection.server }}:{{ connection.port }}</td>
             <td>{{ connection.database }}</td>
             <td>
-              <button class="ghost-button icon-button" type="button" data-tooltip="Probar conexión" aria-label="Probar conexión" @click="testConnection(connection.id)">
-                <AppIcon class="icon-svg" name="test" />
-              </button>
+              <div class="action-row">
+                <button class="ghost-button icon-button" type="button" data-tooltip="Editar conexión" aria-label="Editar conexión" @click="openEditModal(connection)">
+                  <AppIcon class="icon-svg" name="edit" />
+                </button>
+                <button class="ghost-button icon-button" type="button" data-tooltip="Probar conexión" aria-label="Probar conexión" @click="testConnection(connection.id)">
+                  <AppIcon class="icon-svg" name="test" />
+                </button>
+                <button class="ghost-button ghost-button--danger icon-button" type="button" data-tooltip="Eliminar conexión" aria-label="Eliminar conexión" @click="deleteConnection(connection)">
+                  <AppIcon class="icon-svg" name="delete" />
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
       <p v-if="feedback" class="success-text">{{ feedback }}</p>
     </section>
+
+    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
+      <section class="modal-card">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Edit</p>
+            <h3>Modificar conexión</h3>
+          </div>
+          <button class="ghost-button icon-button" type="button" data-tooltip="Cerrar modal" aria-label="Cerrar modal" @click="closeEditModal">
+            <AppIcon class="icon-svg" name="close" />
+          </button>
+        </div>
+
+        <form class="form-grid form-grid--three form-grid--styled" @submit.prevent="updateConnection">
+          <label>
+            <span class="field-head"><span class="field-icon">ID</span>Nombre</span>
+            <input v-model="editForm.name" type="text" />
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">ENG</span>Motor</span>
+            <select v-model.number="editForm.engine">
+              <option value="0">MySQL</option>
+              <option value="1">SQL Server</option>
+            </select>
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">NET</span>Host</span>
+            <input v-model="editForm.server" type="text" />
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">PORT</span>Puerto</span>
+            <input v-model.number="editForm.port" type="number" />
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">DB</span>Base</span>
+            <input v-model="editForm.database" type="text" />
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">USR</span>Usuario</span>
+            <input v-model="editForm.username" type="text" />
+          </label>
+          <label>
+            <span class="field-head"><span class="field-icon">KEY</span>Nueva contraseña</span>
+            <input v-model="editForm.password" type="password" placeholder="Dejar vacío para conservar" />
+          </label>
+          <label class="checkbox-field">
+            <input v-model="editForm.trustServerCertificate" type="checkbox" />
+            Confiar en certificado del servidor
+          </label>
+          <label class="checkbox-field">
+            <input v-model="editForm.enabled" type="checkbox" />
+            Conexión habilitada
+          </label>
+
+          <div class="modal-actions modal-span-full">
+            <button class="ghost-button ghost-button--danger modal-actions__danger button--compact" type="button" @click="deleteConnectionById(editingConnectionId, editForm.name)">Eliminar</button>
+            <button class="ghost-button button--compact" type="button" @click="closeEditModal">Cancelar</button>
+            <button class="button--compact" type="submit">Guardar cambios</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <ConfirmDialog
+      :open="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :detail="confirmState.detail"
+      confirm-label="Eliminar"
+      @cancel="closeConfirmDialog"
+      @confirm="confirmDelete"
+    />
   </section>
 </template>
 
@@ -121,19 +201,37 @@
 import { onMounted, reactive, ref } from 'vue'
 import { api, type ConnectionProfile } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const connections = ref<ConnectionProfile[]>([])
 const feedback = ref('')
-const form = reactive({
-  name: '',
-  engine: 0,
-  server: '',
-  port: 3306,
-  database: '',
-  username: '',
-  password: '',
-  trustServerCertificate: false,
+const isEditModalOpen = ref(false)
+const editingConnectionId = ref('')
+const confirmState = reactive({
+  open: false,
+  title: '',
+  message: '',
+  detail: '',
 })
+let pendingDeleteId = ''
+let pendingDeleteName = ''
+
+function createConnectionFormState() {
+  return {
+    name: '',
+    engine: 0,
+    server: '',
+    port: 3306,
+    database: '',
+    username: '',
+    password: '',
+    trustServerCertificate: false,
+    enabled: true,
+  }
+}
+
+const form = reactive(createConnectionFormState())
+const editForm = reactive(createConnectionFormState())
 
 async function loadConnections() {
   const response = await api.get<ConnectionProfile[]>('/connections')
@@ -143,22 +241,77 @@ async function loadConnections() {
 async function createConnection() {
   await api.post('/connections', form)
   feedback.value = 'Conexión guardada.'
-  Object.assign(form, {
-    name: '',
-    engine: 0,
-    server: '',
-    port: 3306,
-    database: '',
-    username: '',
+  Object.assign(form, createConnectionFormState())
+  await loadConnections()
+}
+
+function openEditModal(connection: ConnectionProfile) {
+  editingConnectionId.value = connection.id
+  Object.assign(editForm, {
+    name: connection.name,
+    engine: connection.engine === 'mySql' ? 0 : 1,
+    server: connection.server,
+    port: connection.port,
+    database: connection.database,
+    username: connection.username,
     password: '',
-    trustServerCertificate: false,
+    trustServerCertificate: connection.trustServerCertificate,
+    enabled: connection.enabled,
   })
+  isEditModalOpen.value = true
+}
+
+function closeEditModal() {
+  isEditModalOpen.value = false
+  editingConnectionId.value = ''
+  Object.assign(editForm, createConnectionFormState())
+}
+
+async function updateConnection() {
+  await api.put(`/connections/${editingConnectionId.value}`, editForm)
+  feedback.value = 'Conexión actualizada.'
+  closeEditModal()
   await loadConnections()
 }
 
 async function testConnection(id: string) {
   await api.post(`/connections/${id}/test`)
   feedback.value = 'Conexión validada correctamente.'
+}
+
+async function deleteConnection(connection: ConnectionProfile) {
+  deleteConnectionById(connection.id, connection.name)
+}
+
+function deleteConnectionById(id: string, name: string) {
+  pendingDeleteId = id
+  pendingDeleteName = name
+  confirmState.title = 'Eliminar conexión'
+  confirmState.message = `Se eliminará la conexión "${name}".`
+  confirmState.detail = 'Si la conexión está asociada a tareas, el backend bloqueará la operación para evitar inconsistencias.'
+  confirmState.open = true
+}
+
+function closeConfirmDialog() {
+  confirmState.open = false
+  pendingDeleteId = ''
+  pendingDeleteName = ''
+}
+
+async function confirmDelete() {
+  const id = pendingDeleteId
+  const name = pendingDeleteName
+  closeConfirmDialog()
+  if (!id) {
+    return
+  }
+
+  await api.delete(`/connections/${id}`)
+  if (editingConnectionId.value === id) {
+    closeEditModal()
+  }
+  feedback.value = `Conexión "${name}" eliminada.`
+  await loadConnections()
 }
 
 onMounted(loadConnections)

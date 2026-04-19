@@ -6,9 +6,15 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ### Added
 
+- Endpoint `PUT /api/connections/{id}` para actualizar conexiones existentes.
+- Endpoint `DELETE /api/connections/{id}` para eliminar conexiones que no estén asociadas a tareas.
+- Endpoint `PUT /api/scripts/{id}` para renombrar scripts y reemplazar opcionalmente el archivo fuente.
+- Endpoint `DELETE /api/scripts/{id}` para eliminar scripts que no estén en uso por tareas.
 - Endpoint `PUT /api/tasks/{id}` para actualizar tareas existentes.
 - Endpoint `DELETE /api/tasks/{id}` para eliminar tareas sin ejecuciones activas.
 - Modal de edición de tareas desde el panel administrativo.
+- Modal de edición de conexiones desde el panel administrativo.
+- Modal de edición de scripts desde el panel administrativo.
 - Biblioteca local de iconos SVG reutilizables para acciones del frontend.
 
 ### Changed
@@ -16,6 +22,7 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 - Se centralizó la validación de creación y actualización de tareas en el backend.
 - Se compactaron acciones repetidas de UI con botones iconográficos y tooltips visibles al pasar el mouse o navegar con foco.
 - Se redujo el peso visual de botones secundarios en formularios y modales para mejorar densidad operativa.
+- Las acciones destructivas del panel ahora usan una confirmación visual integrada en lugar del diálogo nativo del navegador.
 
 ### Fixed
 

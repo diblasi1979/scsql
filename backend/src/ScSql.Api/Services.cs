@@ -151,6 +151,41 @@ public sealed class SqlFileStore
         };
     }
 
+    public async Task ReplaceAsync(SqlScriptAsset script, IFormFile file, CancellationToken cancellationToken)
+    {
+        var oldAbsolutePath = Path.Combine(_sqlPath, script.StoredFileName);
+        var extension = Path.GetExtension(file.FileName);
+        var storedFileName = $"{script.Id:N}{extension}";
+        var newAbsolutePath = Path.Combine(_sqlPath, storedFileName);
+
+        await using (var fileStream = File.Create(newAbsolutePath))
+        {
+            await file.CopyToAsync(fileStream, cancellationToken);
+        }
+
+        if (!string.Equals(oldAbsolutePath, newAbsolutePath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldAbsolutePath))
+        {
+            File.Delete(oldAbsolutePath);
+        }
+
+        script.StoredFileName = storedFileName;
+        script.RelativePath = Path.Combine("sql", storedFileName).Replace('\\', '/');
+        script.UploadedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public Task DeleteAsync(SqlScriptAsset script, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var absolutePath = Path.Combine(_sqlPath, script.StoredFileName);
+        if (File.Exists(absolutePath))
+        {
+            File.Delete(absolutePath);
+        }
+
+        return Task.CompletedTask;
+    }
+
     public async Task<string> ReadScriptAsync(SqlScriptAsset script, CancellationToken cancellationToken)
     {
         var absolutePath = Path.Combine(_sqlPath, script.StoredFileName);
