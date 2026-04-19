@@ -52,9 +52,13 @@ export type RetryPolicy = {
   delayMinutes: number
 }
 
+export type TaskParameterType = 'string' | 'integer' | 'decimal' | 'boolean' | 'dateTime'
+
 export type TaskParameter = {
   name: string
+  type: TaskParameterType
   value: string
+  isNullable: boolean
 }
 
 export type TaskDefinition = {

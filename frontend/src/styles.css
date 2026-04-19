@@ -253,6 +253,12 @@ pre {
   line-height: 1.55;
 }
 
+.section-copy--compact {
+  margin-top: 0;
+  max-width: none;
+  font-size: 0.92rem;
+}
+
 .view-stack {
   display: grid;
   gap: 1.5rem;
@@ -518,6 +524,31 @@ pre {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(91, 44, 255, 0.08);
+}
+
+.parameter-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.parameter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1.3fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.parameter-row__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.parameter-row__toggle input {
+  width: auto;
+  margin: 0;
 }
 
 .schedule-row {
@@ -1008,6 +1039,10 @@ tbody tr:hover {
   }
 
   .hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .parameter-row {
     grid-template-columns: 1fr;
   }
 

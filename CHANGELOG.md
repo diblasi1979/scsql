@@ -4,9 +4,15 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## Unreleased
 
+### Added
+
+- Soporte de parámetros tipados para stored procedures en tareas administrativas, con tipos `string`, `integer`, `decimal`, `boolean` y `dateTime`.
+- Builder visual en la pantalla de tareas para agregar, editar y quitar parámetros con opción `nullable`.
+
 ### Changed
 
 - El sistema de toasts del frontend quedó preparado con variantes visuales `success`, `info`, `warning` y `error` para futuros flujos operativos.
+- La validación de tareas ahora también controla nombres duplicados de parámetros, formatos inválidos y combinaciones inconsistentes entre SQL file y stored procedure.
 
 ## v0.1.1 - 2026-04-19
 

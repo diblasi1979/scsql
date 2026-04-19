@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -294,7 +295,7 @@ public sealed class MySqlExecutionEngine : IDatabaseExecutionEngine
 
         foreach (var parameter in parameters)
         {
-            command.Parameters.AddWithValue(parameter.Name, parameter.Value);
+            command.Parameters.AddWithValue(parameter.Name, TaskParameterValueParser.ToDatabaseValue(parameter));
         }
 
         return await command.ExecuteNonQueryAsync(cancellationToken);
@@ -356,7 +357,7 @@ public sealed class SqlServerExecutionEngine : IDatabaseExecutionEngine
 
         foreach (var parameter in parameters)
         {
-            command.Parameters.AddWithValue(parameter.Name, parameter.Value);
+            command.Parameters.AddWithValue(parameter.Name, TaskParameterValueParser.ToDatabaseValue(parameter));
         }
 
         return await command.ExecuteNonQueryAsync(cancellationToken);
@@ -381,6 +382,117 @@ public sealed class SqlServerExecutionEngine : IDatabaseExecutionEngine
         };
 
         return builder.ConnectionString;
+    }
+}
+
+public static class TaskParameterValueParser
+{
+    public static object ToDatabaseValue(TaskParameter parameter)
+    {
+        if (!TryParse(parameter, out var value, out var errorMessage))
+        {
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        return value ?? DBNull.Value;
+    }
+
+    public static bool TryParse(TaskParameter parameter, out object? value, out string? errorMessage)
+    {
+        var rawValue = parameter.Value?.Trim() ?? string.Empty;
+
+        if (parameter.IsNullable && string.IsNullOrWhiteSpace(rawValue))
+        {
+            value = DBNull.Value;
+            errorMessage = null;
+            return true;
+        }
+
+        if (!parameter.IsNullable && parameter.Type != TaskParameterType.String && string.IsNullOrWhiteSpace(rawValue))
+        {
+            value = null;
+            errorMessage = $"El parámetro '{parameter.Name}' requiere un valor.";
+            return false;
+        }
+
+        switch (parameter.Type)
+        {
+            case TaskParameterType.String:
+                value = parameter.Value ?? string.Empty;
+                errorMessage = null;
+                return true;
+            case TaskParameterType.Integer:
+                if (int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integerValue))
+                {
+                    value = integerValue;
+                    errorMessage = null;
+                    return true;
+                }
+
+                value = null;
+                errorMessage = $"El parámetro '{parameter.Name}' debe ser un entero válido.";
+                return false;
+            case TaskParameterType.Decimal:
+                if (decimal.TryParse(rawValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue))
+                {
+                    value = decimalValue;
+                    errorMessage = null;
+                    return true;
+                }
+
+                value = null;
+                errorMessage = $"El parámetro '{parameter.Name}' debe ser un decimal válido usando punto como separador.";
+                return false;
+            case TaskParameterType.Boolean:
+                if (TryParseBoolean(rawValue, out var booleanValue))
+                {
+                    value = booleanValue;
+                    errorMessage = null;
+                    return true;
+                }
+
+                value = null;
+                errorMessage = $"El parámetro '{parameter.Name}' debe ser true, false, 1 o 0.";
+                return false;
+            case TaskParameterType.DateTime:
+                if (DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                {
+                    value = dateTimeValue;
+                    errorMessage = null;
+                    return true;
+                }
+
+                value = null;
+                errorMessage = $"El parámetro '{parameter.Name}' debe ser una fecha válida en formato ISO 8601 o compatible.";
+                return false;
+            default:
+                value = null;
+                errorMessage = $"El parámetro '{parameter.Name}' usa un tipo no soportado.";
+                return false;
+        }
+    }
+
+    private static bool TryParseBoolean(string rawValue, out bool result)
+    {
+        if (bool.TryParse(rawValue, out result))
+        {
+            return true;
+        }
+
+        if (rawValue == "1")
+        {
+            result = true;
+            return true;
+        }
+
+        if (rawValue == "0")
+        {
+            result = false;
+            return true;
+        }
+
+        result = false;
+        return false;
     }
 }
 

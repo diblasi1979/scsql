@@ -10,6 +10,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 - Edición y borrado de conexiones remotas MySQL y SQL Server desde el panel.
 - Subida, edición y almacenamiento local de scripts `.sql` en el mismo servidor.
 - Creación, edición y borrado de tareas contra archivo SQL o stored procedure.
+- Parámetros tipados para stored procedures con validación de nombres, nulos y formatos antes de ejecutar.
 - Programación automática por día de semana y horario, con múltiples horarios por día.
 - Ejecución manual desde el panel.
 - Historial de ejecuciones, intentos, errores y duración.
@@ -74,7 +75,7 @@ Credenciales por defecto:
 
 1. Añadir versionado o papelera de recuperación para scripts y conexiones eliminadas.
 2. Añadir rotación gestionada de la clave de cifrado para credenciales externas.
-3. Añadir parámetros tipados para stored procedures y validaciones más finas.
+3. Añadir soporte para parámetros de salida o captura tabular avanzada en stored procedures.
 4. Añadir health checks compuestos y métricas operativas.
 5. Evaluar Quartz.NET solo si necesitas clustering o calendarios más complejos que la política actual.
 

@@ -77,6 +77,35 @@
           <span class="field-head"><span class="field-icon">SP</span>Stored Procedure</span>
           <input v-model="form.storedProcedureName" type="text" placeholder="usp_Procesar" />
         </label>
+        <div v-if="form.sourceKind === 1" class="schedule-builder schedule-builder--card modal-span-full">
+          <div class="panel-heading panel-heading--mini">
+            <div>
+              <p class="panel-kicker">Inputs</p>
+              <h3>Parámetros tipados</h3>
+            </div>
+            <button class="ghost-button icon-button icon-button--soft" type="button" data-tooltip="Agregar parámetro" aria-label="Agregar parámetro" @click="addParameterRow(form)">
+              <AppIcon class="icon-svg" name="plus" />
+            </button>
+          </div>
+          <p class="section-copy section-copy--compact">Validación en vivo para enteros, decimales, booleanos y fechas. Si marcás nullable, podés dejar el valor vacío.</p>
+          <div v-if="form.parameters.length" class="parameter-list">
+            <div v-for="(parameter, index) in form.parameters" :key="`create-${index}`" class="parameter-row">
+              <input v-model="parameter.name" type="text" placeholder="@clienteId" />
+              <select v-model="parameter.type">
+                <option v-for="option in parameterTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
+              <input v-model="parameter.value" :placeholder="parameterValuePlaceholder(parameter.type)" type="text" />
+              <label class="parameter-row__toggle">
+                <input v-model="parameter.isNullable" type="checkbox" />
+                Nullable
+              </label>
+              <button class="ghost-button ghost-button--danger icon-button" type="button" data-tooltip="Eliminar parámetro" aria-label="Eliminar parámetro" @click="removeParameterRow(form, index)">
+                <AppIcon class="icon-svg" name="delete" />
+              </button>
+            </div>
+          </div>
+          <p v-else class="section-copy section-copy--compact">Todavía no agregaste parámetros. Sumalos solo si el procedure los necesita.</p>
+        </div>
         <label>
           <span class="field-head"><span class="field-icon">TIME</span>Timeout (seg)</span>
           <input v-model.number="form.timeoutSeconds" type="number" min="1" />
@@ -230,6 +259,35 @@
             <span class="field-head"><span class="field-icon">SP</span>Stored Procedure</span>
             <input v-model="editForm.storedProcedureName" type="text" placeholder="usp_Procesar" />
           </label>
+          <div v-if="editForm.sourceKind === 1" class="schedule-builder schedule-builder--card modal-span-full">
+            <div class="panel-heading panel-heading--mini">
+              <div>
+                <p class="panel-kicker">Inputs</p>
+                <h3>Parámetros tipados</h3>
+              </div>
+              <button class="ghost-button icon-button icon-button--soft" type="button" data-tooltip="Agregar parámetro" aria-label="Agregar parámetro" @click="addParameterRow(editForm)">
+                <AppIcon class="icon-svg" name="plus" />
+              </button>
+            </div>
+            <p class="section-copy section-copy--compact">La edición conserva el tipo elegido y vuelve a validar antes de guardar.</p>
+            <div v-if="editForm.parameters.length" class="parameter-list">
+              <div v-for="(parameter, index) in editForm.parameters" :key="`edit-${index}`" class="parameter-row">
+                <input v-model="parameter.name" type="text" placeholder="@clienteId" />
+                <select v-model="parameter.type">
+                  <option v-for="option in parameterTypeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+                <input v-model="parameter.value" :placeholder="parameterValuePlaceholder(parameter.type)" type="text" />
+                <label class="parameter-row__toggle">
+                  <input v-model="parameter.isNullable" type="checkbox" />
+                  Nullable
+                </label>
+                <button class="ghost-button ghost-button--danger icon-button" type="button" data-tooltip="Eliminar parámetro" aria-label="Eliminar parámetro" @click="removeParameterRow(editForm, index)">
+                  <AppIcon class="icon-svg" name="delete" />
+                </button>
+              </div>
+            </div>
+            <p v-else class="section-copy section-copy--compact">No hay parámetros definidos para esta tarea.</p>
+          </div>
           <label>
             <span class="field-head"><span class="field-icon">TIME</span>Timeout (seg)</span>
             <input v-model.number="editForm.timeoutSeconds" type="number" min="1" />
@@ -300,16 +358,18 @@
       @confirm="confirmDelete"
     />
 
-    <AppToast :open="toast.open" :message="toast.message" @close="closeToast" />
+    <AppToast :open="toast.open" :title="toast.title" :message="toast.message" :variant="toast.variant" @close="closeToast" />
   </section>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
-import { api, type ConnectionProfile, type SqlScriptAsset, type TaskDefinition } from '@/api'
+import { api, type ConnectionProfile, type SqlScriptAsset, type TaskDefinition, type TaskParameter, type TaskParameterType } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
 import AppToast from '@/components/AppToast.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+
+type TaskFormState = ReturnType<typeof createTaskFormState>
 
 const connections = ref<ConnectionProfile[]>([])
 const scripts = ref<SqlScriptAsset[]>([])
@@ -318,7 +378,9 @@ const isEditModalOpen = ref(false)
 const editingTaskId = ref('')
 const toast = reactive({
   open: false,
+  title: 'Listo',
   message: '',
+  variant: 'success' as 'success' | 'info' | 'warning' | 'error',
 })
 const confirmState = reactive({
   open: false,
@@ -339,6 +401,16 @@ const dayLabels: Record<number, string> = {
   6: 'Sáb',
 }
 
+const parameterTypeOptions: Array<{ value: TaskParameterType; label: string }> = [
+  { value: 'string', label: 'Texto' },
+  { value: 'integer', label: 'Entero' },
+  { value: 'decimal', label: 'Decimal' },
+  { value: 'boolean', label: 'Booleano' },
+  { value: 'dateTime', label: 'Fecha y hora' },
+]
+
+const parameterNamePattern = /^@?[A-Za-z_][A-Za-z0-9_]*$/
+
 function createTaskFormState() {
   return {
     name: '',
@@ -347,7 +419,7 @@ function createTaskFormState() {
     sourceKind: 0,
     sqlScriptId: '',
     storedProcedureName: '',
-    parameters: [] as Array<{ name: string; value: string }>,
+    parameters: [] as TaskParameter[],
     automatic: true,
     enabled: true,
     schedules: [] as Array<{ dayOfWeek: number; time: string }>,
@@ -387,6 +459,23 @@ function addSchedule() {
   form.schedules.push({ dayOfWeek: schedule.dayOfWeek, time: schedule.time })
 }
 
+function createTaskParameter(): TaskParameter {
+  return {
+    name: '',
+    type: 'string',
+    value: '',
+    isNullable: false,
+  }
+}
+
+function addParameterRow(taskForm: TaskFormState) {
+  taskForm.parameters.push(createTaskParameter())
+}
+
+function removeParameterRow(taskForm: TaskFormState, index: number) {
+  taskForm.parameters.splice(index, 1)
+}
+
 function addEditSchedule() {
   editForm.schedules.push({ dayOfWeek: editSchedule.dayOfWeek, time: editSchedule.time })
 }
@@ -395,11 +484,12 @@ function removeEditSchedule(index: number) {
   editForm.schedules.splice(index, 1)
 }
 
-function buildTaskPayload(taskForm: ReturnType<typeof createTaskFormState>) {
+function buildTaskPayload(taskForm: TaskFormState) {
   return {
     ...taskForm,
     sqlScriptId: taskForm.sourceKind === 0 ? taskForm.sqlScriptId || null : null,
     storedProcedureName: taskForm.sourceKind === 1 ? taskForm.storedProcedureName || null : null,
+    parameters: taskForm.sourceKind === 1 ? taskForm.parameters.map((parameter) => ({ ...parameter })) : [],
   }
 }
 
@@ -421,7 +511,12 @@ function openEditModal(task: TaskDefinition) {
     sourceKind: task.sourceKind === 'sqlFile' ? 0 : 1,
     sqlScriptId: task.sqlScriptId ?? '',
     storedProcedureName: task.storedProcedureName ?? '',
-    parameters: task.parameters.map((parameter) => ({ ...parameter })),
+    parameters: task.parameters.map((parameter) => ({
+      name: parameter.name,
+      type: parameter.type ?? 'string',
+      value: parameter.value ?? '',
+      isNullable: parameter.isNullable ?? false,
+    })),
     automatic: task.automatic,
     enabled: task.enabled,
     schedules: task.schedules.map((slot) => ({ ...slot })),
@@ -439,8 +534,10 @@ function closeEditModal() {
   resetEditForm()
 }
 
-function showToast(message: string) {
+function showToast(message: string, variant: 'success' | 'info' | 'warning' | 'error' = 'success', title = 'Listo') {
+  toast.title = title
   toast.message = message
+  toast.variant = variant
   toast.open = true
   if (toastTimer) {
     clearTimeout(toastTimer)
@@ -458,7 +555,111 @@ function closeToast() {
   }
 }
 
+function parameterValuePlaceholder(type: TaskParameterType) {
+  switch (type) {
+    case 'integer':
+      return '42'
+    case 'decimal':
+      return '1250.75'
+    case 'boolean':
+      return 'true o 1'
+    case 'dateTime':
+      return '2026-04-19T15:30:00'
+    default:
+      return 'Valor del parámetro'
+  }
+}
+
+function normalizeParameterName(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`
+}
+
+function validateTaskForm(taskForm: TaskFormState) {
+  if (!taskForm.name.trim()) {
+    return 'Indicá un nombre para la tarea.'
+  }
+
+  if (!taskForm.connectionId) {
+    return 'Seleccioná una conexión.'
+  }
+
+  if (taskForm.timeoutSeconds <= 0) {
+    return 'El timeout debe ser mayor a cero.'
+  }
+
+  if (taskForm.retryPolicy.maxRetries < 0) {
+    return 'La cantidad de reintentos no puede ser negativa.'
+  }
+
+  if (taskForm.retryPolicy.delayMinutes <= 0) {
+    return 'La demora entre reintentos debe ser mayor a cero.'
+  }
+
+  if (taskForm.automatic && taskForm.schedules.length === 0) {
+    return 'Sumá al menos un horario para las tareas automáticas.'
+  }
+
+  if (taskForm.sourceKind === 0) {
+    if (!taskForm.sqlScriptId) {
+      return 'Seleccioná un script SQL.'
+    }
+
+    return null
+  }
+
+  if (!taskForm.storedProcedureName.trim()) {
+    return 'Indicá el nombre del stored procedure.'
+  }
+
+  const seenNames = new Set<string>()
+  for (const parameter of taskForm.parameters) {
+    const normalizedName = normalizeParameterName(parameter.name)
+    if (!parameterNamePattern.test(normalizedName)) {
+      return 'Cada parámetro debe tener un nombre válido usando letras, números o guion bajo.'
+    }
+
+    const duplicateKey = normalizedName.slice(1).toLowerCase()
+    if (seenNames.has(duplicateKey)) {
+      return `El parámetro ${normalizedName} está repetido.`
+    }
+    seenNames.add(duplicateKey)
+
+    if (!parameter.isNullable && parameter.type !== 'string' && !parameter.value.trim()) {
+      return `El parámetro ${normalizedName} requiere un valor.`
+    }
+
+    if (parameter.type === 'integer' && parameter.value.trim() && !/^-?\d+$/.test(parameter.value.trim())) {
+      return `El parámetro ${normalizedName} debe ser un entero válido.`
+    }
+
+    if (parameter.type === 'decimal' && parameter.value.trim() && Number.isNaN(Number(parameter.value.trim()))) {
+      return `El parámetro ${normalizedName} debe ser un decimal válido.`
+    }
+
+    if (parameter.type === 'boolean' && parameter.value.trim() && !['true', 'false', '1', '0'].includes(parameter.value.trim().toLowerCase())) {
+      return `El parámetro ${normalizedName} debe ser true, false, 1 o 0.`
+    }
+
+    if (parameter.type === 'dateTime' && parameter.value.trim() && Number.isNaN(Date.parse(parameter.value.trim()))) {
+      return `El parámetro ${normalizedName} debe ser una fecha válida.`
+    }
+  }
+
+  return null
+}
+
 async function createTask() {
+  const validationError = validateTaskForm(form)
+  if (validationError) {
+    showToast(validationError, 'error', 'Revisar datos')
+    return
+  }
+
   await api.post('/tasks', buildTaskPayload(form))
   showToast('Tarea creada.')
   resetCreateForm()
@@ -466,6 +667,12 @@ async function createTask() {
 }
 
 async function updateTask() {
+  const validationError = validateTaskForm(editForm)
+  if (validationError) {
+    showToast(validationError, 'error', 'Revisar datos')
+    return
+  }
+
   await api.put(`/tasks/${editingTaskId.value}`, buildTaskPayload(editForm))
   showToast('Tarea actualizada.')
   closeEditModal()

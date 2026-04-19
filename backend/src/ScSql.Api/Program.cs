@@ -320,13 +320,13 @@ adminGroup.MapPost("/tasks", async (CreateTaskRequest request, AppDbContext dbCo
 
     var task = new ScheduledTaskDefinition
     {
-        Name = request.Name,
+        Name = request.Name.Trim(),
         ConnectionId = request.ConnectionId,
         Engine = connection.Engine,
         SourceKind = request.SourceKind,
         SqlScriptId = request.SqlScriptId,
-        StoredProcedureName = request.StoredProcedureName,
-        Parameters = request.Parameters,
+        StoredProcedureName = request.SourceKind == TaskSourceKind.StoredProcedure ? request.StoredProcedureName?.Trim() : null,
+        Parameters = NormalizeTaskParameters(request),
         Automatic = request.Automatic,
         Enabled = request.Enabled,
         Schedules = request.Schedules,
@@ -359,13 +359,13 @@ adminGroup.MapPut("/tasks/{id:guid}", async (Guid id, CreateTaskRequest request,
         return Results.BadRequest(new { message = "La conexión seleccionada no existe." });
     }
 
-    task.Name = request.Name;
+    task.Name = request.Name.Trim();
     task.ConnectionId = request.ConnectionId;
     task.Engine = connection.Engine;
     task.SourceKind = request.SourceKind;
     task.SqlScriptId = request.SourceKind == TaskSourceKind.SqlFile ? request.SqlScriptId : null;
-    task.StoredProcedureName = request.SourceKind == TaskSourceKind.StoredProcedure ? request.StoredProcedureName : null;
-    task.Parameters = request.Parameters;
+    task.StoredProcedureName = request.SourceKind == TaskSourceKind.StoredProcedure ? request.StoredProcedureName?.Trim() : null;
+    task.Parameters = NormalizeTaskParameters(request);
     task.Automatic = request.Automatic;
     task.Enabled = request.Enabled;
     task.Schedules = request.Schedules;
@@ -436,22 +436,154 @@ static ConnectionProfileResponse ToConnectionResponse(ConnectionProfile connecti
 
 static IResult? ValidateTaskRequest(CreateTaskRequest request)
 {
+    if (request.ConnectionId == Guid.Empty)
+    {
+        return Results.BadRequest(new { message = "Debe seleccionar una conexión válida." });
+    }
+
+    if (string.IsNullOrWhiteSpace(request.Name))
+    {
+        return Results.BadRequest(new { message = "Debe indicar un nombre para la tarea." });
+    }
+
+    if (request.TimeoutSeconds <= 0)
+    {
+        return Results.BadRequest(new { message = "El timeout debe ser mayor a cero." });
+    }
+
+    if (request.RetryPolicy.MaxRetries < 0)
+    {
+        return Results.BadRequest(new { message = "La cantidad de reintentos no puede ser negativa." });
+    }
+
+    if (request.RetryPolicy.DelayMinutes <= 0)
+    {
+        return Results.BadRequest(new { message = "La demora entre reintentos debe ser mayor a cero." });
+    }
+
     if (request.Automatic && request.Schedules.Count == 0)
     {
         return Results.BadRequest(new { message = "Una tarea automática debe tener al menos un horario." });
     }
 
-    if (request.SourceKind == TaskSourceKind.SqlFile && request.SqlScriptId is null)
+    if (request.SourceKind == TaskSourceKind.SqlFile)
     {
-        return Results.BadRequest(new { message = "Debe seleccionar un archivo SQL." });
+        if (request.SqlScriptId is null)
+        {
+            return Results.BadRequest(new { message = "Debe seleccionar un archivo SQL." });
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.StoredProcedureName) || request.Parameters.Count > 0)
+        {
+            return Results.BadRequest(new { message = "Los parámetros y el stored procedure solo aplican a tareas de tipo stored procedure." });
+        }
     }
 
-    if (request.SourceKind == TaskSourceKind.StoredProcedure && string.IsNullOrWhiteSpace(request.StoredProcedureName))
+    if (request.SourceKind == TaskSourceKind.StoredProcedure)
     {
-        return Results.BadRequest(new { message = "Debe indicar el stored procedure." });
+        if (string.IsNullOrWhiteSpace(request.StoredProcedureName))
+        {
+            return Results.BadRequest(new { message = "Debe indicar el stored procedure." });
+        }
+
+        var parameterValidationError = ValidateTaskParameters(request.Parameters);
+        if (parameterValidationError is not null)
+        {
+            return Results.BadRequest(new { message = parameterValidationError });
+        }
     }
 
     return null;
+}
+
+static List<TaskParameter> NormalizeTaskParameters(CreateTaskRequest request)
+{
+    if (request.SourceKind != TaskSourceKind.StoredProcedure)
+    {
+        return [];
+    }
+
+    return request.Parameters
+        .Select(parameter => new TaskParameter
+        {
+            Name = NormalizeParameterName(parameter.Name),
+            Type = parameter.Type,
+            Value = parameter.Value,
+            IsNullable = parameter.IsNullable
+        })
+        .ToList();
+}
+
+static string? ValidateTaskParameters(IReadOnlyCollection<TaskParameter> parameters)
+{
+    var normalizedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var parameter in parameters)
+    {
+        if (!TryNormalizeParameterName(parameter.Name, out var normalizedName))
+        {
+            return "Cada parámetro debe tener un nombre válido usando letras, números o guion bajo.";
+        }
+
+        if (!normalizedNames.Add(normalizedName.TrimStart('@')))
+        {
+            return $"El parámetro '{normalizedName}' está repetido.";
+        }
+
+        if (!TaskParameterValueParser.TryParse(
+                new TaskParameter
+                {
+                    Name = normalizedName,
+                    Type = parameter.Type,
+                    Value = parameter.Value,
+                    IsNullable = parameter.IsNullable
+                },
+                out _,
+                out var errorMessage))
+        {
+            return errorMessage;
+        }
+    }
+
+    return null;
+}
+
+static string NormalizeParameterName(string rawName)
+{
+    return TryNormalizeParameterName(rawName, out var normalizedName)
+        ? normalizedName
+        : rawName.Trim();
+}
+
+static bool TryNormalizeParameterName(string rawName, out string normalizedName)
+{
+    normalizedName = rawName.Trim();
+    if (string.IsNullOrWhiteSpace(normalizedName))
+    {
+        return false;
+    }
+
+    var nameWithoutPrefix = normalizedName.TrimStart('@');
+    if (nameWithoutPrefix.Length == 0)
+    {
+        return false;
+    }
+
+    if (!(char.IsLetter(nameWithoutPrefix[0]) || nameWithoutPrefix[0] == '_'))
+    {
+        return false;
+    }
+
+    for (var index = 1; index < nameWithoutPrefix.Length; index++)
+    {
+        if (!(char.IsLetterOrDigit(nameWithoutPrefix[index]) || nameWithoutPrefix[index] == '_'))
+        {
+            return false;
+        }
+    }
+
+    normalizedName = normalizedName.StartsWith('@') ? normalizedName : $"@{nameWithoutPrefix}";
+    return true;
 }
 
 adminGroup.MapGet("/executions/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken cancellationToken) =>

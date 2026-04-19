@@ -23,6 +23,15 @@ public enum ExecutionStatus
     Retrying
 }
 
+public enum TaskParameterType
+{
+    String,
+    Integer,
+    Decimal,
+    Boolean,
+    DateTime
+}
+
 public sealed class AppState
 {
     public List<ConnectionProfile> Connections { get; set; } = new();
@@ -99,7 +108,9 @@ public sealed class ScheduledTaskDefinition
 public sealed class TaskParameter
 {
     public string Name { get; set; } = string.Empty;
+    public TaskParameterType Type { get; set; } = TaskParameterType.String;
     public string Value { get; set; } = string.Empty;
+    public bool IsNullable { get; set; }
 }
 
 public sealed class RetryPolicy
