@@ -175,7 +175,6 @@
           </tr>
         </tbody>
       </table>
-      <p v-if="feedback" class="success-text">{{ feedback }}</p>
     </section>
 
     <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
@@ -300,21 +299,27 @@
       @cancel="closeConfirmDialog"
       @confirm="confirmDelete"
     />
+
+    <AppToast :open="toast.open" :message="toast.message" @close="closeToast" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { api, type ConnectionProfile, type SqlScriptAsset, type TaskDefinition } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
+import AppToast from '@/components/AppToast.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const connections = ref<ConnectionProfile[]>([])
 const scripts = ref<SqlScriptAsset[]>([])
 const tasks = ref<TaskDefinition[]>([])
-const feedback = ref('')
 const isEditModalOpen = ref(false)
 const editingTaskId = ref('')
+const toast = reactive({
+  open: false,
+  message: '',
+})
 const confirmState = reactive({
   open: false,
   title: '',
@@ -323,6 +328,7 @@ const confirmState = reactive({
 })
 let pendingDeleteId = ''
 let pendingDeleteName = ''
+let toastTimer: ReturnType<typeof setTimeout> | undefined
 const dayLabels: Record<number, string> = {
   0: 'Dom',
   1: 'Lun',
@@ -433,23 +439,42 @@ function closeEditModal() {
   resetEditForm()
 }
 
+function showToast(message: string) {
+  toast.message = message
+  toast.open = true
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+  toastTimer = setTimeout(() => {
+    toast.open = false
+  }, 3200)
+}
+
+function closeToast() {
+  toast.open = false
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+    toastTimer = undefined
+  }
+}
+
 async function createTask() {
   await api.post('/tasks', buildTaskPayload(form))
-  feedback.value = 'Tarea creada.'
+  showToast('Tarea creada.')
   resetCreateForm()
   await loadAll()
 }
 
 async function updateTask() {
   await api.put(`/tasks/${editingTaskId.value}`, buildTaskPayload(editForm))
-  feedback.value = 'Tarea actualizada.'
+  showToast('Tarea actualizada.')
   closeEditModal()
   await loadAll()
 }
 
 async function runTask(id: string) {
   await api.post(`/tasks/${id}/run`)
-  feedback.value = 'Tarea enviada a ejecución.'
+  showToast('Tarea enviada a ejecución.')
 }
 
 async function deleteTask(task: TaskDefinition) {
@@ -487,9 +512,10 @@ async function confirmDelete() {
   if (editingTaskId.value === id) {
     closeEditModal()
   }
-  feedback.value = `Tarea "${name}" eliminada.`
+  showToast(`Tarea "${name}" eliminada.`)
   await loadAll()
 }
 
 onMounted(loadAll)
+onUnmounted(closeToast)
 </script>

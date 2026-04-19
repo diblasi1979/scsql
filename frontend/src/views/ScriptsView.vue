@@ -39,7 +39,6 @@
         </div>
         <button class="button--compact" type="submit">Subir</button>
       </form>
-      <p v-if="feedback" class="success-text">{{ feedback }}</p>
     </section>
 
     <section class="panel-card panel-card--dense">
@@ -127,22 +126,28 @@
       @cancel="closeConfirmDialog"
       @confirm="confirmDelete"
     />
+
+    <AppToast :open="toast.open" :message="toast.message" @close="closeToast" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { api, type SqlScriptAsset } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
+import AppToast from '@/components/AppToast.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const scripts = ref<SqlScriptAsset[]>([])
-const feedback = ref('')
 const selectedFile = ref<File | null>(null)
 const isEditModalOpen = ref(false)
 const editingScriptId = ref('')
 const editOriginalName = ref('')
 const editSelectedFile = ref<File | null>(null)
+const toast = reactive({
+  open: false,
+  message: '',
+})
 const confirmState = ref({
   open: false,
   title: '',
@@ -151,6 +156,26 @@ const confirmState = ref({
 })
 let pendingDeleteId = ''
 let pendingDeleteName = ''
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+
+function showToast(message: string) {
+  toast.message = message
+  toast.open = true
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+  toastTimer = setTimeout(() => {
+    toast.open = false
+  }, 3200)
+}
+
+function closeToast() {
+  toast.open = false
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+    toastTimer = undefined
+  }
+}
 
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
@@ -175,7 +200,7 @@ async function uploadScript() {
   const form = new FormData()
   form.append('file', selectedFile.value)
   await api.post('/scripts', form)
-  feedback.value = 'Script cargado y almacenado en el servidor.'
+  showToast('Script cargado y almacenado en el servidor.')
   selectedFile.value = null
   await loadScripts()
 }
@@ -202,7 +227,7 @@ async function updateScript() {
   }
 
   await api.put(`/scripts/${editingScriptId.value}`, form)
-  feedback.value = 'Script actualizado.'
+  showToast('Script actualizado.')
   closeEditModal()
   await loadScripts()
 }
@@ -245,9 +270,10 @@ async function confirmDelete() {
   if (editingScriptId.value === id) {
     closeEditModal()
   }
-  feedback.value = `Script "${name}" eliminado.`
+  showToast(`Script "${name}" eliminado.`)
   await loadScripts()
 }
 
 onMounted(loadScripts)
+onUnmounted(closeToast)
 </script>

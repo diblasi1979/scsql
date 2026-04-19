@@ -4,6 +4,8 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## Unreleased
 
+## v0.1.1 - 2026-04-19
+
 ### Added
 
 - Endpoint `PUT /api/connections/{id}` para actualizar conexiones existentes.
@@ -23,6 +25,7 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 - Se compactaron acciones repetidas de UI con botones iconográficos y tooltips visibles al pasar el mouse o navegar con foco.
 - Se redujo el peso visual de botones secundarios en formularios y modales para mejorar densidad operativa.
 - Las acciones destructivas del panel ahora usan una confirmación visual integrada en lugar del diálogo nativo del navegador.
+- Los mensajes de éxito del panel pasaron a toasts visuales coherentes con el resto de la interfaz administrativa.
 
 ### Fixed
 

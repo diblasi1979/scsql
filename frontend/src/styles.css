@@ -635,6 +635,69 @@ pre {
   color: var(--muted);
 }
 
+.app-toast {
+  position: fixed;
+  right: 1.4rem;
+  bottom: 1.4rem;
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  width: min(420px, calc(100vw - 2rem));
+  padding: 1rem 1rem 0.95rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(23, 28, 60, 0.96), rgba(49, 33, 105, 0.94));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 28px 70px rgba(17, 20, 40, 0.34);
+}
+
+.app-toast__icon {
+  width: 2.3rem;
+  height: 2.3rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(15, 157, 122, 0.24), rgba(255, 159, 28, 0.22));
+}
+
+.app-toast__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.app-toast__copy strong,
+.app-toast__copy p {
+  display: block;
+  margin: 0;
+}
+
+.app-toast__copy p {
+  margin-top: 0.22rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+}
+
+.app-toast__close {
+  min-width: 2.2rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+}
+
+.toast-pop-enter-active,
+.toast-pop-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast-pop-enter-from,
+.toast-pop-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+
 .modal-span-full {
   grid-column: 1 / -1;
 }

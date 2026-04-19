@@ -120,7 +120,6 @@
           </tr>
         </tbody>
       </table>
-      <p v-if="feedback" class="success-text">{{ feedback }}</p>
     </section>
 
     <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
@@ -194,19 +193,25 @@
       @cancel="closeConfirmDialog"
       @confirm="confirmDelete"
     />
+
+    <AppToast :open="toast.open" :message="toast.message" @close="closeToast" />
   </section>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { api, type ConnectionProfile } from '@/api'
 import AppIcon from '@/components/AppIcon.vue'
+import AppToast from '@/components/AppToast.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const connections = ref<ConnectionProfile[]>([])
-const feedback = ref('')
 const isEditModalOpen = ref(false)
 const editingConnectionId = ref('')
+const toast = reactive({
+  open: false,
+  message: '',
+})
 const confirmState = reactive({
   open: false,
   title: '',
@@ -215,6 +220,7 @@ const confirmState = reactive({
 })
 let pendingDeleteId = ''
 let pendingDeleteName = ''
+let toastTimer: ReturnType<typeof setTimeout> | undefined
 
 function createConnectionFormState() {
   return {
@@ -233,6 +239,25 @@ function createConnectionFormState() {
 const form = reactive(createConnectionFormState())
 const editForm = reactive(createConnectionFormState())
 
+function showToast(message: string) {
+  toast.message = message
+  toast.open = true
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+  toastTimer = setTimeout(() => {
+    toast.open = false
+  }, 3200)
+}
+
+function closeToast() {
+  toast.open = false
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+    toastTimer = undefined
+  }
+}
+
 async function loadConnections() {
   const response = await api.get<ConnectionProfile[]>('/connections')
   connections.value = response.data
@@ -240,7 +265,7 @@ async function loadConnections() {
 
 async function createConnection() {
   await api.post('/connections', form)
-  feedback.value = 'Conexión guardada.'
+  showToast('Conexión guardada.')
   Object.assign(form, createConnectionFormState())
   await loadConnections()
 }
@@ -269,14 +294,14 @@ function closeEditModal() {
 
 async function updateConnection() {
   await api.put(`/connections/${editingConnectionId.value}`, editForm)
-  feedback.value = 'Conexión actualizada.'
+  showToast('Conexión actualizada.')
   closeEditModal()
   await loadConnections()
 }
 
 async function testConnection(id: string) {
   await api.post(`/connections/${id}/test`)
-  feedback.value = 'Conexión validada correctamente.'
+  showToast('Conexión validada correctamente.')
 }
 
 async function deleteConnection(connection: ConnectionProfile) {
@@ -310,9 +335,10 @@ async function confirmDelete() {
   if (editingConnectionId.value === id) {
     closeEditModal()
   }
-  feedback.value = `Conexión "${name}" eliminada.`
+  showToast(`Conexión "${name}" eliminada.`)
   await loadConnections()
 }
 
 onMounted(loadConnections)
+onUnmounted(closeToast)
 </script>
