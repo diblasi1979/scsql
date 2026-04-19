@@ -28,7 +28,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 
 ## Limitaciones actuales
 
-- Las credenciales de conexiones externas aún no están cifradas en reposo.
+- Todavía no hay rotación automática de la clave usada para cifrar credenciales externas.
 - No hay edición o borrado de conexiones/tareas/scripts desde UI.
 - No hay refresh token, auditoría de cambios ni control de concurrencia distribuida.
 
@@ -75,3 +75,22 @@ Credenciales por defecto:
 - Demo funcional reproducible: `qa/run-end-to-end-demo.sh`
 - Validación del scheduler automático: `qa/run-scheduler-check.sh`
 - Guía de uso: `qa/README.md`
+
+## Changelog
+
+- Historial de cambios: `CHANGELOG.md`
+
+## Convención de versiones
+
+SCSQL usa una convención basada en Semantic Versioning con foco práctico:
+
+- `MAJOR`: cambios incompatibles de API, modelo de datos, contratos de integración o despliegue.
+- `MINOR`: nuevas capacidades compatibles, por ejemplo nuevos motores, nuevas pantallas, edición de entidades o mejoras funcionales del scheduler.
+- `PATCH`: correcciones compatibles, mejoras de QA, ajustes visuales, endurecimiento operativo o fixes de bugs.
+
+Regla de trabajo sugerida:
+
+1. Mientras el producto siga en maduración inicial, versiones `0.x.y` indican que todavía puede haber ajustes relevantes entre minors.
+2. Usar `0.x.0` para hitos funcionales visibles o entregables comerciales claros.
+3. Usar `0.x.z` para fixes y endurecimiento sin ampliar alcance funcional.
+4. Pasar a `1.0.0` cuando contratos, despliegue y flujos principales estén suficientemente estabilizados para producción formal.
