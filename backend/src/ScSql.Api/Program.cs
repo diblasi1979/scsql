@@ -203,19 +203,10 @@ adminGroup.MapGet("/tasks", async (AppDbContext dbContext, CancellationToken can
 
 adminGroup.MapPost("/tasks", async (CreateTaskRequest request, AppDbContext dbContext, CancellationToken cancellationToken) =>
 {
-    if (request.Automatic && request.Schedules.Count == 0)
+    var validationError = ValidateTaskRequest(request);
+    if (validationError is not null)
     {
-        return Results.BadRequest(new { message = "Una tarea automática debe tener al menos un horario." });
-    }
-
-    if (request.SourceKind == TaskSourceKind.SqlFile && request.SqlScriptId is null)
-    {
-        return Results.BadRequest(new { message = "Debe seleccionar un archivo SQL." });
-    }
-
-    if (request.SourceKind == TaskSourceKind.StoredProcedure && string.IsNullOrWhiteSpace(request.StoredProcedureName))
-    {
-        return Results.BadRequest(new { message = "Debe indicar el stored procedure." });
+        return validationError;
     }
 
     var connection = await dbContext.Connections.AsNoTracking().FirstOrDefaultAsync(candidate => candidate.Id == request.ConnectionId, cancellationToken);
@@ -243,6 +234,68 @@ adminGroup.MapPost("/tasks", async (CreateTaskRequest request, AppDbContext dbCo
     dbContext.Tasks.Add(task);
     await dbContext.SaveChangesAsync(cancellationToken);
     return Results.Created($"/api/tasks/{task.Id}", task);
+});
+
+adminGroup.MapPut("/tasks/{id:guid}", async (Guid id, CreateTaskRequest request, AppDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var validationError = ValidateTaskRequest(request);
+    if (validationError is not null)
+    {
+        return validationError;
+    }
+
+    var task = await dbContext.Tasks.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (task is null)
+    {
+        return Results.NotFound();
+    }
+
+    var connection = await dbContext.Connections.AsNoTracking().FirstOrDefaultAsync(candidate => candidate.Id == request.ConnectionId, cancellationToken);
+    if (connection is null)
+    {
+        return Results.BadRequest(new { message = "La conexión seleccionada no existe." });
+    }
+
+    task.Name = request.Name;
+    task.ConnectionId = request.ConnectionId;
+    task.Engine = connection.Engine;
+    task.SourceKind = request.SourceKind;
+    task.SqlScriptId = request.SourceKind == TaskSourceKind.SqlFile ? request.SqlScriptId : null;
+    task.StoredProcedureName = request.SourceKind == TaskSourceKind.StoredProcedure ? request.StoredProcedureName : null;
+    task.Parameters = request.Parameters;
+    task.Automatic = request.Automatic;
+    task.Enabled = request.Enabled;
+    task.Schedules = request.Schedules;
+    task.RetryPolicy = request.RetryPolicy;
+    task.TimeoutSeconds = request.TimeoutSeconds;
+    task.LastScheduledRunUtc = request.Automatic ? DateTimeOffset.UtcNow : null;
+
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.Ok(task);
+});
+
+adminGroup.MapDelete("/tasks/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var task = await dbContext.Tasks.FirstOrDefaultAsync(candidate => candidate.Id == id, cancellationToken);
+    if (task is null)
+    {
+        return Results.NotFound();
+    }
+
+    var hasActiveExecution = await dbContext.Executions.AnyAsync(
+        execution => execution.TaskId == id
+            && execution.FinishedAtUtc == null
+            && (execution.Status == ExecutionStatus.Pending || execution.Status == ExecutionStatus.Running || execution.Status == ExecutionStatus.Retrying),
+        cancellationToken);
+
+    if (hasActiveExecution)
+    {
+        return Results.Conflict(new { message = "No se puede eliminar una tarea con una ejecución en curso." });
+    }
+
+    dbContext.Tasks.Remove(task);
+    await dbContext.SaveChangesAsync(cancellationToken);
+    return Results.NoContent();
 });
 
 adminGroup.MapPost("/tasks/{id:guid}/run", async (Guid id, ExecutionService executionService, CancellationToken cancellationToken) =>
@@ -276,6 +329,26 @@ static ConnectionProfileResponse ToConnectionResponse(ConnectionProfile connecti
         TrustServerCertificate = connection.TrustServerCertificate,
         Enabled = connection.Enabled
     };
+}
+
+static IResult? ValidateTaskRequest(CreateTaskRequest request)
+{
+    if (request.Automatic && request.Schedules.Count == 0)
+    {
+        return Results.BadRequest(new { message = "Una tarea automática debe tener al menos un horario." });
+    }
+
+    if (request.SourceKind == TaskSourceKind.SqlFile && request.SqlScriptId is null)
+    {
+        return Results.BadRequest(new { message = "Debe seleccionar un archivo SQL." });
+    }
+
+    if (request.SourceKind == TaskSourceKind.StoredProcedure && string.IsNullOrWhiteSpace(request.StoredProcedureName))
+    {
+        return Results.BadRequest(new { message = "Debe indicar el stored procedure." });
+    }
+
+    return null;
 }
 
 adminGroup.MapGet("/executions/{id:guid}", async (Guid id, AppDbContext dbContext, CancellationToken cancellationToken) =>

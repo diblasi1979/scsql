@@ -6,7 +6,9 @@
         <h2>Servidores de base de datos</h2>
         <p class="section-copy">Armá destinos nuevos con una lectura más visual y testealos desde el mismo panel.</p>
       </div>
-      <button @click="loadConnections">Recargar</button>
+      <button class="icon-button" type="button" data-tooltip="Recargar conexiones" aria-label="Recargar conexiones" @click="loadConnections">
+        <AppIcon class="icon-svg" name="refresh" />
+      </button>
     </header>
 
     <section class="hero-panel hero-panel--connections">
@@ -66,7 +68,7 @@
           <input v-model="form.trustServerCertificate" type="checkbox" />
           Confiar en certificado del servidor
         </label>
-        <button type="submit">Guardar conexión</button>
+        <button class="button--compact" type="submit">Guardar conexión</button>
       </form>
     </section>
 
@@ -103,7 +105,9 @@
             <td>{{ connection.server }}:{{ connection.port }}</td>
             <td>{{ connection.database }}</td>
             <td>
-              <button class="ghost-button" @click="testConnection(connection.id)">Probar</button>
+              <button class="ghost-button icon-button" type="button" data-tooltip="Probar conexión" aria-label="Probar conexión" @click="testConnection(connection.id)">
+                <AppIcon class="icon-svg" name="test" />
+              </button>
             </td>
           </tr>
         </tbody>
@@ -116,6 +120,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { api, type ConnectionProfile } from '@/api'
+import AppIcon from '@/components/AppIcon.vue'
 
 const connections = ref<ConnectionProfile[]>([])
 const feedback = ref('')

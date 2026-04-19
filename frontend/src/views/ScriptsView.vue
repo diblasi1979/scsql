@@ -6,7 +6,9 @@
         <h2>Scripts SQL</h2>
         <p class="section-copy">Subí archivos, centralizá versiones y dejá el material listo para tareas manuales o automáticas.</p>
       </div>
-      <button @click="loadScripts">Recargar</button>
+      <button class="icon-button" type="button" data-tooltip="Recargar scripts" aria-label="Recargar scripts" @click="loadScripts">
+        <AppIcon class="icon-svg" name="refresh" />
+      </button>
     </header>
 
     <section class="hero-panel hero-panel--scripts">
@@ -35,7 +37,7 @@
           <span class="field-head"><span class="field-icon">FILE</span>Script fuente</span>
           <input accept=".sql" type="file" @change="onFileChange" />
         </div>
-        <button type="submit">Subir</button>
+        <button class="button--compact" type="submit">Subir</button>
       </form>
       <p v-if="feedback" class="success-text">{{ feedback }}</p>
     </section>
@@ -79,6 +81,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api, type SqlScriptAsset } from '@/api'
+import AppIcon from '@/components/AppIcon.vue'
 
 const scripts = ref<SqlScriptAsset[]>([])
 const feedback = ref('')

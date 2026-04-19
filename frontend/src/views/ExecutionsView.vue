@@ -6,7 +6,9 @@
         <h2>Historial de ejecuciones</h2>
         <p class="section-copy">Leé estados, duración e incidentes con una visualización más fuerte y una jerarquía de feed.</p>
       </div>
-      <button @click="loadExecutions">Actualizar</button>
+      <button class="icon-button" type="button" data-tooltip="Actualizar historial" aria-label="Actualizar historial" @click="loadExecutions">
+        <AppIcon class="icon-svg" name="refresh" />
+      </button>
     </header>
 
     <section class="hero-panel hero-panel--executions">
@@ -77,6 +79,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { api, type ExecutionRecord } from '@/api'
+import AppIcon from '@/components/AppIcon.vue'
 
 const executions = ref<ExecutionRecord[]>([])
 const failedCount = computed(() => executions.value.filter((entry) => entry.status === 'failed').length)

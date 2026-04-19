@@ -7,8 +7,9 @@
         <p class="section-copy">Una vista rápida del pulso del sistema para operar sin navegar de más.</p>
       </div>
       <div class="page-actions">
-        <button class="ghost-button" @click="logout">Cerrar sesión</button>
-        <button @click="loadData">Actualizar</button>
+        <button class="icon-button" type="button" data-tooltip="Actualizar dashboard" aria-label="Actualizar dashboard" @click="loadData">
+          <AppIcon class="icon-svg" name="refresh" />
+        </button>
       </div>
     </header>
 
@@ -119,11 +120,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { api, type Dashboard } from '@/api'
+import AppIcon from '@/components/AppIcon.vue'
 import StatCard from '@/components/StatCard.vue'
-import { useAuthStore } from '@/stores/auth'
 
 const dashboard = ref<Dashboard | null>(null)
-const auth = useAuthStore()
 
 function normalizeEngine(engine: string) {
   return engine === 'mySql' ? 'MySQL' : 'SQL Server'
@@ -136,10 +136,6 @@ function formatDate(value: string) {
 async function loadData() {
   const response = await api.get<Dashboard>('/dashboard')
   dashboard.value = response.data
-}
-
-async function logout() {
-  await auth.logout()
 }
 
 onMounted(loadData)

@@ -2,6 +2,26 @@
 
 Este proyecto sigue una variante pragmática de Semantic Versioning.
 
+## Unreleased
+
+### Added
+
+- Endpoint `PUT /api/tasks/{id}` para actualizar tareas existentes.
+- Endpoint `DELETE /api/tasks/{id}` para eliminar tareas sin ejecuciones activas.
+- Modal de edición de tareas desde el panel administrativo.
+- Biblioteca local de iconos SVG reutilizables para acciones del frontend.
+
+### Changed
+
+- Se centralizó la validación de creación y actualización de tareas en el backend.
+- Se compactaron acciones repetidas de UI con botones iconográficos y tooltips visibles al pasar el mouse o navegar con foco.
+- Se redujo el peso visual de botones secundarios en formularios y modales para mejorar densidad operativa.
+
+### Fixed
+
+- El dashboard volvió a usar un único cierre de sesión persistente en el sidebar.
+- El layout autenticado y no autenticado quedó mejor ajustado para login centrado y navegación lateral estable.
+
 ## v0.1.0 - 2026-04-19
 
 Lanzamiento inicial público de SCSQL.

@@ -17,10 +17,13 @@
       </nav>
       <div class="sidebar-footer">
         <p class="sidebar-note">Modo admin activo</p>
-        <button class="ghost-button" @click="logout">Cerrar sesión</button>
+        <button class="ghost-button icon-button icon-button--wide" type="button" data-tooltip="Cerrar sesión" aria-label="Cerrar sesión" @click="logout">
+          <AppIcon class="icon-svg" name="logout" />
+          <span class="icon-label">Salir</span>
+        </button>
       </div>
     </aside>
-    <main class="content content--decorated">
+    <main :class="auth.isAuthenticated ? 'content content--decorated' : 'content content--authless'">
       <RouterView />
     </main>
   </div>
@@ -28,6 +31,7 @@
 
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()

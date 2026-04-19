@@ -1,6 +1,6 @@
 # SCSQL
 
-SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP.NET Core 8 y panel administrativo en Vue 3. La implementación actual ya incluye login local, carga de archivos `.sql`, definición de conexiones MySQL y SQL Server, creación de tareas manuales o automáticas, programación por día/hora, reintentos básicos e historial de ejecución con errores detallados.
+SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP.NET Core 8 y panel administrativo en Vue 3. La implementación actual ya incluye login local, carga de archivos `.sql`, definición de conexiones MySQL y SQL Server, creación y edición de tareas manuales o automáticas, programación por día/hora, reintentos básicos e historial de ejecución con errores detallados.
 
 ## Lo que ya hace
 
@@ -8,10 +8,11 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 - Panel administrativo en Vue 3.
 - Registro de conexiones remotas MySQL y SQL Server.
 - Subida y almacenamiento local de scripts `.sql` en el mismo servidor.
-- Creación de tareas contra archivo SQL o stored procedure.
+- Creación, edición y borrado de tareas contra archivo SQL o stored procedure.
 - Programación automática por día de semana y horario, con múltiples horarios por día.
 - Ejecución manual desde el panel.
 - Historial de ejecuciones, intentos, errores y duración.
+- Panel visual renovado con sidebar persistente, login centrado, modal de edición y acciones iconográficas compactas con tooltip.
 - Scheduler interno que reclama ocurrencias pendientes por horario y evita depender de una coincidencia exacta de minuto.
 - Scheduler con zona horaria explícita para ejecuciones automáticas consistentes dentro de Docker.
 - Persistencia administrativa en MySQL interno del sistema.
@@ -29,7 +30,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 ## Limitaciones actuales
 
 - Todavía no hay rotación automática de la clave usada para cifrar credenciales externas.
-- No hay edición o borrado de conexiones/tareas/scripts desde UI.
+- No hay edición o borrado de conexiones ni scripts desde UI.
 - No hay refresh token, auditoría de cambios ni control de concurrencia distribuida.
 
 ## Ejecutar con Docker
@@ -58,13 +59,15 @@ Credenciales por defecto:
 - `POST /api/connections/{id}/test`
 - `GET/POST /api/scripts`
 - `GET/POST /api/tasks`
+- `PUT /api/tasks/{id}`
+- `DELETE /api/tasks/{id}`
 - `POST /api/tasks/{id}/run`
 - `GET /api/executions`
 - `GET /api/executions/{id}`
 
 ## Próximos pasos recomendados
 
-1. Agregar edición, desactivación y borrado de entidades desde el panel.
+1. Agregar edición y borrado de conexiones y scripts desde el panel.
 2. Añadir rotación gestionada de la clave de cifrado para credenciales externas.
 3. Añadir parámetros tipados para stored procedures y validaciones más finas.
 4. Añadir health checks compuestos y métricas operativas.
