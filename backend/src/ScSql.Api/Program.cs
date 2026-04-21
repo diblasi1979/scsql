@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ScSql.Api;
@@ -445,14 +446,94 @@ adminGroup.MapPost("/tasks/{id:guid}/run", async (Guid id, ExecutionService exec
     return Results.Ok(execution);
 });
 
-adminGroup.MapGet("/executions", async (AppDbContext dbContext, CancellationToken cancellationToken) =>
+adminGroup.MapGet("/executions", async (
+    string? taskName,
+    string? status,
+    DateTimeOffset? startedFromUtc,
+    DateTimeOffset? startedToUtc,
+    int? take,
+    AppDbContext dbContext,
+    CancellationToken cancellationToken) =>
 {
-    var executions = await dbContext.Executions
-        .AsNoTracking()
+    var query = dbContext.Executions.AsNoTracking().AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(taskName))
+    {
+        var normalizedTaskName = taskName.Trim();
+        query = query.Where(execution => execution.TaskName.Contains(normalizedTaskName));
+    }
+
+    if (!string.IsNullOrWhiteSpace(status))
+    {
+        if (!Enum.TryParse<ExecutionStatus>(status, ignoreCase: true, out var parsedStatus))
+        {
+            return Results.BadRequest(new { message = "El estado indicado para filtrar ejecuciones no es válido." });
+        }
+
+        query = query.Where(execution => execution.Status == parsedStatus);
+    }
+
+    if (startedFromUtc.HasValue)
+    {
+        query = query.Where(execution => execution.StartedAtUtc >= startedFromUtc.Value);
+    }
+
+    if (startedToUtc.HasValue)
+    {
+        query = query.Where(execution => execution.StartedAtUtc <= startedToUtc.Value);
+    }
+
+    var boundedTake = Math.Clamp(take ?? 100, 1, 500);
+
+    var executions = await query
         .OrderByDescending(execution => execution.StartedAtUtc)
-        .Take(100)
+        .Take(boundedTake)
         .ToListAsync(cancellationToken);
+
     return Results.Ok(executions);
+});
+
+adminGroup.MapDelete("/executions", async ([FromBody] DeleteExecutionsRequest request, AppDbContext dbContext, CancellationToken cancellationToken) =>
+{
+    var ids = request.Ids
+        .Where(id => id != Guid.Empty)
+        .Distinct()
+        .ToList();
+
+    if (ids.Count == 0)
+    {
+        return Results.BadRequest(new { message = "Debés indicar al menos una ejecución para eliminar." });
+    }
+
+    var activeStatuses = new[]
+    {
+        ExecutionStatus.Pending,
+        ExecutionStatus.Running,
+        ExecutionStatus.Retrying,
+    };
+
+    var hasActiveExecution = await dbContext.Executions.AnyAsync(
+        execution => ids.Contains(execution.Id) && activeStatuses.Contains(execution.Status),
+        cancellationToken);
+
+    if (hasActiveExecution)
+    {
+        return Results.Conflict(new { message = "No se pueden eliminar ejecuciones pendientes o en curso." });
+    }
+
+    var executions = await dbContext.Executions
+        .Where(execution => ids.Contains(execution.Id))
+        .ToListAsync(cancellationToken);
+
+    if (executions.Count == 0)
+    {
+        return Results.NotFound(new { message = "No se encontraron ejecuciones para eliminar." });
+    }
+
+    dbContext.Executions.RemoveRange(executions);
+    await dbContext.SaveChangesAsync(cancellationToken);
+
+    return Results.Ok(new { deletedCount = executions.Count });
 });
 
 static ConnectionProfileResponse ToConnectionResponse(ConnectionProfile connection)

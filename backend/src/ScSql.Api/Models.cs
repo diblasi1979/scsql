@@ -235,3 +235,9 @@ public sealed class DashboardResponse
     public List<ScheduledTaskDefinition> UpcomingTasks { get; set; } = new();
     public List<ExecutionRecord> RecentExecutions { get; set; } = new();
 }
+
+public sealed class DeleteExecutionsRequest
+{
+    [MinLength(1)]
+    public List<Guid> Ids { get; set; } = new();
+}

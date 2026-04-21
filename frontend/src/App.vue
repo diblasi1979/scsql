@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <div :class="auth.isAuthenticated ? 'app-shell' : 'app-shell app-shell--authless'">
     <aside v-if="auth.isAuthenticated" class="sidebar">
       <div class="sidebar-top">
         <div class="brand-lockup">
@@ -30,7 +30,12 @@
       </div>
     </aside>
     <main :class="auth.isAuthenticated ? 'content content--decorated' : 'content content--authless'">
-      <RouterView />
+      <div class="content__body">
+        <RouterView />
+      </div>
+      <footer class="app-footer">
+        <p>Copyright © 2026 By Di Blasi Pablo</p>
+      </footer>
     </main>
   </div>
 </template>
