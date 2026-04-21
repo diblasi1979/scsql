@@ -102,7 +102,7 @@
             <th>Intentos</th>
             <th>Inicio</th>
             <th>Duración</th>
-            <th>Error</th>
+            <th>Resultado</th>
           </tr>
         </thead>
         <tbody>
@@ -135,6 +135,10 @@
               <details v-if="execution.errorSummary" class="details-card">
                 <summary>{{ execution.errorSummary }}</summary>
                 <pre>{{ execution.errorDetail }}</pre>
+              </details>
+              <details v-else-if="execution.successSummary" class="details-card details-card--success">
+                <summary>{{ execution.successSummary }}</summary>
+                <pre>{{ execution.successDetail }}</pre>
               </details>
               <span v-else>-</span>
             </td>

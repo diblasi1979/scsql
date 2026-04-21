@@ -52,7 +52,7 @@
           </label>
           <label>
             <span class="field-head"><span class="field-icon">SKU</span>Producto</span>
-            <input v-model="form.productCode" type="text" placeholder="scsql" />
+            <input v-model="form.productCode" type="text" placeholder="novent" />
           </label>
           <label>
             <span class="field-head"><span class="field-icon">PLAN</span>Plan</span>
@@ -156,7 +156,7 @@ const toast = reactive({
 
 const form = reactive(createInitialForm())
 
-const payloadPreview = computed(() => payloadJson.value || '{\n  "productCode": "scsql"\n}')
+const payloadPreview = computed(() => payloadJson.value || '{\n  "productCode": "novent"\n}')
 
 function createInitialForm(): LicenseForm {
   const now = new Date()
@@ -164,7 +164,7 @@ function createInitialForm(): LicenseForm {
 
   return {
     customerName: '',
-    productCode: 'scsql',
+    productCode: 'novent',
     plan: 'subscription',
     issuedAtUtc: toDateTimeLocalValue(now),
     notBeforeUtc: toDateTimeLocalValue(now),

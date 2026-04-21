@@ -24,7 +24,7 @@ public enum LicenseState
 public sealed class LicensingOptions
 {
     public bool RequireValidLicense { get; set; }
-    public string ProductCode { get; set; } = "scsql";
+    public string ProductCode { get; set; } = "novent";
     public string PublicKeyPem { get; set; } = string.Empty;
     public string CurrentLicenseKey { get; set; } = string.Empty;
     public string InstanceId { get; set; } = string.Empty;
@@ -32,7 +32,7 @@ public sealed class LicensingOptions
 
 public sealed class LicensePayload
 {
-    public string ProductCode { get; set; } = "scsql";
+    public string ProductCode { get; set; } = "novent";
     public string CustomerName { get; set; } = string.Empty;
     public LicensePlan Plan { get; set; } = LicensePlan.Subscription;
     public DateTimeOffset IssuedAtUtc { get; set; } = DateTimeOffset.UtcNow;
@@ -58,7 +58,7 @@ public sealed class LicenseStatusResponse
     public bool IsValid { get; init; }
     public bool ShouldBlock { get; init; }
     public string Message { get; init; } = string.Empty;
-    public string ProductCode { get; init; } = "scsql";
+    public string ProductCode { get; init; } = "novent";
     public string? CustomerName { get; init; }
     public string? InstanceId { get; init; }
     public LicensePlan? Plan { get; init; }

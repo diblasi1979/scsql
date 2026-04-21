@@ -6,6 +6,7 @@ import ScriptsView from '@/views/ScriptsView.vue'
 import TasksView from '@/views/TasksView.vue'
 import ExecutionsView from '@/views/ExecutionsView.vue'
 import LicenseStudioView from '@/views/LicenseStudioView.vue'
+import { getStoredAuthToken } from '@/authToken'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,7 +22,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const token = localStorage.getItem('scsql-token')
+  const token = getStoredAuthToken()
   const publicRoutes = new Set(['login', 'license-studio'])
 
   if (!publicRoutes.has(String(to.name)) && !token) {

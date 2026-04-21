@@ -1,6 +1,6 @@
 # QA y Demo Reproducible
 
-Este directorio deja una colección reproducible para QA funcional y demo comercial sobre el stack Docker de SCSQL.
+Este directorio deja una colección reproducible para QA funcional y demo comercial sobre el stack Docker de Novent.
 
 ## Prerrequisitos
 

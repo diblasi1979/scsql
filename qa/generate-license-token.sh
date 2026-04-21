@@ -11,7 +11,7 @@ Uso:
     --issued-at 2026-04-21T00:00:00Z \
     [--expires-at 2026-05-21T00:00:00Z] \
     [--instance-id cliente-prod-01] \
-    [--product-code scsql]
+    [--product-code novent]
 
 Genera un token firmado con formato:
   base64url(payloadJson).base64url(signature)
@@ -31,7 +31,7 @@ plan=""
 issued_at=""
 expires_at=""
 instance_id=""
-product_code="scsql"
+product_code="novent"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

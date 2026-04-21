@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -83,6 +84,8 @@ public sealed class AppDbContext : DbContext
             entity.ToTable("executions");
             entity.HasKey(candidate => candidate.Id);
             entity.Property(candidate => candidate.TaskName).HasMaxLength(150);
+            entity.Property(candidate => candidate.SuccessSummary).HasMaxLength(500);
+            entity.Property(candidate => candidate.SuccessDetail).HasColumnType("longtext");
             entity.Property(candidate => candidate.ErrorSummary).HasMaxLength(500);
             entity.Property(candidate => candidate.ErrorDetail).HasColumnType("longtext");
             entity.HasIndex(candidate => candidate.StartedAtUtc);
@@ -120,9 +123,69 @@ public sealed class ApplicationBootstrapper
     {
         await WaitForDatabaseAsync(cancellationToken);
         await _dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        await EnsureExecutionResponseColumnsAsync(cancellationToken);
         await ImportLegacyJsonStateAsync(cancellationToken);
         await ProtectConnectionSecretsAsync(cancellationToken);
         await EnsureAdminUserAsync(cancellationToken);
+    }
+
+    private async Task EnsureExecutionResponseColumnsAsync(CancellationToken cancellationToken)
+    {
+        await EnsureExecutionColumnAsync(
+            "SuccessSummary",
+            "ALTER TABLE executions ADD COLUMN SuccessSummary varchar(500) NULL",
+            cancellationToken);
+
+        await EnsureExecutionColumnAsync(
+            "SuccessDetail",
+            "ALTER TABLE executions ADD COLUMN SuccessDetail longtext NULL",
+            cancellationToken);
+    }
+
+    private async Task EnsureExecutionColumnAsync(string columnName, string alterSql, CancellationToken cancellationToken)
+    {
+        var connection = _dbContext.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var existsCommand = connection.CreateCommand();
+            existsCommand.CommandText = """
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'executions'
+                  AND column_name = @columnName
+                """;
+
+            var parameter = existsCommand.CreateParameter();
+            parameter.ParameterName = "@columnName";
+            parameter.Value = columnName;
+            existsCommand.Parameters.Add(parameter);
+
+            var existsResult = await existsCommand.ExecuteScalarAsync(cancellationToken);
+            var columnExists = Convert.ToInt32(existsResult) > 0;
+            if (columnExists)
+            {
+                return;
+            }
+
+            await using var alterCommand = connection.CreateCommand();
+            alterCommand.CommandText = alterSql;
+            await alterCommand.ExecuteNonQueryAsync(cancellationToken);
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 
     private async Task WaitForDatabaseAsync(CancellationToken cancellationToken)

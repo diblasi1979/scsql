@@ -1,4 +1,4 @@
-# Activación comercial de SCSQL
+# Activación comercial de Novent
 
 Este documento baja a tierra cómo pasar de la implementación técnica a una operación comercial real usando licencias firmadas.
 
@@ -95,7 +95,7 @@ cp .env.production.example .env.production
 Editar `.env.production` con:
 
 - `SCSQL_LICENSING_REQUIRE_VALID_LICENSE=true`
-- `SCSQL_LICENSING_PRODUCT_CODE=scsql`
+- `SCSQL_LICENSING_PRODUCT_CODE=novent`
 - `SCSQL_LICENSING_INSTANCE_ID=cliente-sa-prod-01`
 - `SCSQL_LICENSING_CURRENT_LICENSE_KEY=<token emitido>`
 - `SCSQL_LICENSING_PUBLIC_KEY_PEM=<public.pem en una sola línea con \n>`
@@ -118,7 +118,7 @@ Si preferís sobreescribir en sesión:
 
 ```bash
 export SCSQL_LICENSING_REQUIRE_VALID_LICENSE=true
-export SCSQL_LICENSING_PRODUCT_CODE=scsql
+export SCSQL_LICENSING_PRODUCT_CODE=novent
 export SCSQL_LICENSING_INSTANCE_ID=cliente-sa-prod-01
 export SCSQL_LICENSING_CURRENT_LICENSE_KEY='PEGAR_TOKEN_AQUI'
 export SCSQL_LICENSING_PUBLIC_KEY_PEM="$(awk '{printf "%s\\n", $0}' ~/scsql-license-issuer/public.pem | sed 's/\\n$//')"
@@ -154,7 +154,7 @@ Respuesta esperada cuando está activa:
   "isValid": true,
   "shouldBlock": false,
   "message": "Licencia por suscripción válida.",
-  "productCode": "scsql",
+  "productCode": "novent",
   "customerName": "Cliente SA",
   "instanceId": "cliente-sa-prod-01",
   "plan": "subscription",

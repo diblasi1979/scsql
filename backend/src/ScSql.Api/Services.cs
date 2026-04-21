@@ -261,6 +261,8 @@ public interface IDatabaseExecutionEngine
     Task TestConnectionAsync(ConnectionProfile connection, CancellationToken cancellationToken);
 }
 
+public sealed record ExecutionResult(int RowsAffected, string SuccessSummary, string SuccessDetail);
+
 public sealed class MySqlExecutionEngine : IDatabaseExecutionEngine
 {
     private readonly ConnectionSecretProtector _secretProtector;
@@ -564,12 +566,14 @@ public sealed class ExecutionService
 
                 try
                 {
-                    var rowsAffected = await ExecuteTaskCoreAsync(task, connection, cancellationToken);
+                    var result = await ExecuteTaskCoreAsync(task, connection, cancellationToken);
                     stopwatch.Stop();
-                    execution.RowsAffected = rowsAffected;
+                    execution.RowsAffected = result.RowsAffected;
                     execution.Status = ExecutionStatus.Success;
                     execution.DurationMs = stopwatch.ElapsedMilliseconds;
                     execution.FinishedAtUtc = DateTimeOffset.UtcNow;
+                    execution.SuccessSummary = result.SuccessSummary;
+                    execution.SuccessDetail = result.SuccessDetail;
                     execution.ErrorSummary = null;
                     execution.ErrorDetail = null;
                     await _dbContext.SaveChangesAsync(cancellationToken);
@@ -578,6 +582,8 @@ public sealed class ExecutionService
                 catch (Exception exception)
                 {
                     lastException = exception;
+                    execution.SuccessSummary = null;
+                    execution.SuccessDetail = null;
                     execution.ErrorSummary = exception.Message;
                     execution.ErrorDetail = exception.ToString();
                     execution.Status = attempt < task.RetryPolicy.MaxRetries ? ExecutionStatus.Retrying : ExecutionStatus.Failed;
@@ -597,6 +603,8 @@ public sealed class ExecutionService
             execution.Status = ExecutionStatus.Failed;
             execution.DurationMs = stopwatch.ElapsedMilliseconds;
             execution.FinishedAtUtc = DateTimeOffset.UtcNow;
+            execution.SuccessSummary = null;
+            execution.SuccessDetail = null;
             execution.ErrorSummary = lastException?.Message;
             execution.ErrorDetail = lastException?.ToString();
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -608,30 +616,49 @@ public sealed class ExecutionService
         }
     }
 
-    private async Task<int> ExecuteTaskCoreAsync(ScheduledTaskDefinition task, ConnectionProfile connection, CancellationToken cancellationToken)
+    private async Task<ExecutionResult> ExecuteTaskCoreAsync(ScheduledTaskDefinition task, ConnectionProfile connection, CancellationToken cancellationToken)
     {
         var engine = _engines[task.Engine];
         return task.SourceKind switch
         {
             TaskSourceKind.SqlFile => await ExecuteSqlFileAsync(task, connection, engine, cancellationToken),
-            TaskSourceKind.StoredProcedure => await engine.ExecuteStoredProcedureAsync(
-                connection,
-                task.Parameters,
-                task.StoredProcedureName ?? throw new InvalidOperationException("La tarea no tiene stored procedure configurado."),
-                task.TimeoutSeconds,
-                cancellationToken),
+            TaskSourceKind.StoredProcedure => BuildStoredProcedureExecutionResult(
+                task,
+                await engine.ExecuteStoredProcedureAsync(
+                    connection,
+                    task.Parameters,
+                    task.StoredProcedureName ?? throw new InvalidOperationException("La tarea no tiene stored procedure configurado."),
+                    task.TimeoutSeconds,
+                    cancellationToken)),
             _ => throw new InvalidOperationException("Tipo de tarea no soportado.")
         };
     }
 
-    private async Task<int> ExecuteSqlFileAsync(ScheduledTaskDefinition task, ConnectionProfile connection, IDatabaseExecutionEngine engine, CancellationToken cancellationToken)
+    private async Task<ExecutionResult> ExecuteSqlFileAsync(ScheduledTaskDefinition task, ConnectionProfile connection, IDatabaseExecutionEngine engine, CancellationToken cancellationToken)
     {
         var script = await _dbContext.Scripts
             .AsNoTracking()
             .FirstOrDefaultAsync(candidate => candidate.Id == task.SqlScriptId, cancellationToken)
             ?? throw new InvalidOperationException("Script SQL no encontrado.");
         var sql = await _sqlFileStore.ReadScriptAsync(script, cancellationToken);
-        return await engine.ExecuteSqlAsync(connection, sql, task.TimeoutSeconds, cancellationToken);
+        var rowsAffected = await engine.ExecuteSqlAsync(connection, sql, task.TimeoutSeconds, cancellationToken);
+
+        return new ExecutionResult(
+            rowsAffected,
+            "Ejecución SQL completada correctamente.",
+            $"El script '{script.OriginalName}' finalizó sin errores y reportó {rowsAffected} fila(s) afectada(s)."
+        );
+    }
+
+    private static ExecutionResult BuildStoredProcedureExecutionResult(ScheduledTaskDefinition task, int rowsAffected)
+    {
+        var procedureName = task.StoredProcedureName ?? "stored procedure";
+
+        return new ExecutionResult(
+            rowsAffected,
+            "Stored procedure ejecutado correctamente.",
+            $"El stored procedure '{procedureName}' finalizó sin errores y reportó {rowsAffected} fila(s) afectada(s)."
+        );
     }
 }
 

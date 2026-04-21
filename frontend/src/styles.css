@@ -887,6 +887,10 @@ textarea:focus {
   background: rgba(230, 75, 99, 0.08);
 }
 
+.details-card--success[open] {
+  background: rgba(15, 157, 122, 0.1);
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

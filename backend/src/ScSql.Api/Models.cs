@@ -135,6 +135,8 @@ public sealed class ExecutionRecord
     public DateTimeOffset? FinishedAtUtc { get; set; }
     public bool ManualTrigger { get; set; }
     public int Attempts { get; set; }
+    public string? SuccessSummary { get; set; }
+    public string? SuccessDetail { get; set; }
     public string? ErrorSummary { get; set; }
     public string? ErrorDetail { get; set; }
     public long? DurationMs { get; set; }

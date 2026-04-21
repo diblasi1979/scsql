@@ -2,7 +2,7 @@
 
 Este proyecto sigue una variante pragmática de Semantic Versioning.
 
-## Unreleased
+## v0.3.0 - 2026-04-21
 
 ### Added
 
@@ -13,6 +13,9 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 - Guía operativa `LICENSING.md` y plantilla `licensing.env.example` para activar licencias comerciales en despliegues Docker.
 - Emisor visual `/license-studio` para generar licencias en el navegador usando una clave privada PKCS#8.
 - Plantilla `.env.production.example` para configurar Docker Compose con variables de producción sin hardcodear secretos en el YAML.
+- Filtros por tarea, estado y rango temporal en el historial de ejecuciones.
+- Eliminación múltiple de ejecuciones desde el panel administrativo.
+- Persistencia y visualización de respuesta exitosa en el historial de ejecuciones.
 
 ### Changed
 
@@ -20,6 +23,15 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 - El scheduler dejó de reclamar nuevas ejecuciones automáticas cuando la licencia requerida no es válida.
 - `docker-compose.yml` y `appsettings.json` ahora exponen configuración explícita para el módulo de licenciamiento.
 - `docker-compose.yml` ahora consume directamente variables simples desde `.env.production` y las traduce al formato esperado por ASP.NET Core.
+- La marca visible del producto pasó de `SCSQL` a `Novent` en frontend y documentación operativa.
+- El token local del frontend pasó a `novent-token` con fallback compatible a `scsql-token` para sesiones existentes.
+- El `productCode` por defecto de licencias y ejemplos quedó alineado a `novent`.
+- El login y el shell visual se compactaron y se ajustaron para una presentación más comercial.
+
+### Fixed
+
+- El endpoint `DELETE /api/executions` quedó enlazado explícitamente al body para evitar fallos de arranque del API.
+- La migración de columnas de respuesta exitosa sobre MySQL existente se volvió compatible con verificación previa en `information_schema`.
 
 ## v0.2.0 - 2026-04-19
 
@@ -63,7 +75,7 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## v0.1.0 - 2026-04-19
 
-Lanzamiento inicial público de SCSQL.
+Lanzamiento inicial público de Novent.
 
 ### Added
 

@@ -1,11 +1,12 @@
 import axios from 'axios'
+import { getStoredAuthToken } from '@/authToken'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:2008/api',
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('scsql-token')
+  const token = getStoredAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -87,6 +88,8 @@ export type ExecutionRecord = {
   finishedAtUtc?: string | null
   manualTrigger: boolean
   attempts: number
+  successSummary?: string | null
+  successDetail?: string | null
   errorSummary?: string | null
   errorDetail?: string | null
   durationMs?: number | null

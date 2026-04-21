@@ -1,6 +1,6 @@
-# SCSQL
+# Novent
 
-SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP.NET Core 8 y panel administrativo en Vue 3. La implementación actual ya incluye login local, carga de archivos `.sql`, definición de conexiones MySQL y SQL Server, creación y edición de tareas manuales o automáticas, programación por día/hora, reintentos básicos e historial de ejecución con errores detallados.
+Novent es un planificador de consultas SQL y stored procedures con backend en ASP.NET Core 8 y panel administrativo en Vue 3. La implementación actual ya incluye login local, carga de archivos `.sql`, definición de conexiones MySQL y SQL Server, creación y edición de tareas manuales o automáticas, programación por día/hora, reintentos básicos e historial de ejecución con errores detallados.
 
 ## Lo que ya hace
 
@@ -37,7 +37,7 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 
 ## Licenciamiento comercial
 
-La base técnica recomendada ya no es una `key` "encriptada" dentro del código, porque eso se termina pudiendo extraer o parchear. En su lugar, SCSQL ahora soporta licencias firmadas digitalmente por RSA:
+La base técnica recomendada ya no es una `key` "encriptada" dentro del código, porque eso se termina pudiendo extraer o parchear. En su lugar, Novent ahora soporta licencias firmadas digitalmente por RSA:
 
 - La aplicación distribuida contiene solo la clave pública para verificar licencias.
 - La clave privada queda del lado del vendedor para emitir nuevas licencias.
@@ -58,7 +58,7 @@ Variables relevantes:
 
 1. Generar un par RSA fuera del entorno entregado al cliente.
 2. Conservar la privada en un entorno de emisión controlado.
-3. Cargar la pública en el despliegue de SCSQL.
+3. Cargar la pública en el despliegue de Novent.
 4. Emitir un token por cliente con `qa/generate-license-token.sh`.
 5. Configurar el token emitido como `Licensing__CurrentLicenseKey`.
 
@@ -160,7 +160,7 @@ Credenciales por defecto:
 
 ## Convención de versiones
 
-SCSQL usa una convención basada en Semantic Versioning con foco práctico:
+Novent usa una convención basada en Semantic Versioning con foco práctico:
 
 - `MAJOR`: cambios incompatibles de API, modelo de datos, contratos de integración o despliegue.
 - `MINOR`: nuevas capacidades compatibles, por ejemplo nuevos motores, nuevas pantallas, edición de entidades o mejoras funcionales del scheduler.

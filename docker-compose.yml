@@ -39,7 +39,7 @@ services:
       Scheduler__TimeZoneId: ${SCSQL_SCHEDULER_TIME_ZONE_ID:-America/Argentina/Buenos_Aires}
       ConnectionSecurity__EncryptionKey: ${SCSQL_CONNECTION_ENCRYPTION_KEY:-scsql-dev-connection-key-change-in-production}
       Licensing__RequireValidLicense: ${SCSQL_LICENSING_REQUIRE_VALID_LICENSE:-false}
-      Licensing__ProductCode: ${SCSQL_LICENSING_PRODUCT_CODE:-scsql}
+      Licensing__ProductCode: ${SCSQL_LICENSING_PRODUCT_CODE:-novent}
       Licensing__PublicKeyPem: ${SCSQL_LICENSING_PUBLIC_KEY_PEM:-}
       Licensing__CurrentLicenseKey: ${SCSQL_LICENSING_CURRENT_LICENSE_KEY:-}
       Licensing__InstanceId: ${SCSQL_LICENSING_INSTANCE_ID:-}
