@@ -5,3 +5,4 @@ backend/**/obj/
 .DS_Store
 storage/
 qa/results/
+.env.production

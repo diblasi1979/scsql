@@ -25,6 +25,7 @@
       </form>
       <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
       <p v-if="license.errorMessage" class="error-text">{{ license.errorMessage }}</p>
+      <RouterLink class="secondary-link" to="/license-studio">Abrir emisor administrativo de licencias</RouterLink>
     </div>
   </section>
 </template>
@@ -32,7 +33,7 @@
 <script setup lang="ts">
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLicenseStore } from '@/stores/license'
 

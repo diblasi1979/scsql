@@ -76,16 +76,19 @@ public sealed class LicenseService
     };
 
     private readonly LicensingOptions _options;
+    private readonly string _publicKeyPem;
 
     public LicenseService(IOptions<LicensingOptions> options)
     {
         _options = options.Value;
+        _publicKeyPem = NormalizePem(_options.PublicKeyPem);
     }
 
     public LicenseValidationSnapshot GetSnapshot(DateTimeOffset? now = null)
     {
         var currentInstant = now ?? DateTimeOffset.UtcNow;
-        var hasLicenseConfig = !string.IsNullOrWhiteSpace(_options.PublicKeyPem) || !string.IsNullOrWhiteSpace(_options.CurrentLicenseKey);
+        var currentLicenseKey = _options.CurrentLicenseKey?.Trim() ?? string.Empty;
+        var hasLicenseConfig = !string.IsNullOrWhiteSpace(_publicKeyPem) || !string.IsNullOrWhiteSpace(currentLicenseKey);
         if (!_options.RequireValidLicense && !hasLicenseConfig)
         {
             return new LicenseValidationSnapshot
@@ -97,17 +100,17 @@ public sealed class LicenseService
             };
         }
 
-        if (string.IsNullOrWhiteSpace(_options.PublicKeyPem))
+        if (string.IsNullOrWhiteSpace(_publicKeyPem))
         {
             return InvalidSnapshot(LicenseState.Missing, "Falta configurar Licensing:PublicKeyPem.");
         }
 
-        if (string.IsNullOrWhiteSpace(_options.CurrentLicenseKey))
+        if (string.IsNullOrWhiteSpace(currentLicenseKey))
         {
             return InvalidSnapshot(LicenseState.Missing, "Falta configurar Licensing:CurrentLicenseKey.");
         }
 
-        var tokenParts = _options.CurrentLicenseKey.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokenParts = currentLicenseKey.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (tokenParts.Length != 2)
         {
             return InvalidSnapshot(LicenseState.Invalid, "La licencia no tiene un formato válido.");
@@ -229,7 +232,7 @@ public sealed class LicenseService
         try
         {
             using var rsa = RSA.Create();
-            rsa.ImportFromPem(_options.PublicKeyPem);
+            rsa.ImportFromPem(_publicKeyPem);
             return rsa.VerifyData(payloadBytes, signatureBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
         catch (CryptographicException)
@@ -262,5 +265,13 @@ public sealed class LicenseService
             LicensePlan.Subscription => "Mensual",
             _ => "Sin licencia"
         };
+    }
+
+    private static string NormalizePem(string value)
+    {
+        return (value ?? string.Empty)
+            .Replace("\\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\\n", "\n", StringComparison.Ordinal)
+            .Trim();
     }
 }

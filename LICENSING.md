@@ -14,8 +14,10 @@ Este documento baja a tierra cómo pasar de la implementación técnica a una op
 - Backend: `backend/src/ScSql.Api/Licensing.cs`
 - Configuración base: `backend/src/ScSql.Api/appsettings.json`
 - Despliegue Docker: `docker-compose.yml`
-- Script de emisión: `qa/generate-license-token.sh`
+- Script de emisión por shell: `qa/generate-license-token.sh`
+- Emisor visual: `frontend/src/views/LicenseStudioView.vue`
 - Plantilla de variables: `licensing.env.example`
+- Plantilla productiva: `.env.production.example`
 
 ## Paso 1. Generar las claves RSA
 
@@ -26,11 +28,13 @@ mkdir -p ~/scsql-license-issuer
 cd ~/scsql-license-issuer
 openssl genrsa -out private.pem 2048
 openssl rsa -in private.pem -pubout -out public.pem
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in private.pem -out private-pkcs8.pem -nocrypt
 ```
 
 Resultado:
 
-- `private.pem`: queda solo en tu entorno de emisión.
+- `private.pem`: queda solo en tu entorno de emisión para script shell.
+- `private-pkcs8.pem`: variante apta para el emisor visual del navegador.
 - `public.pem`: se copia al despliegue del cliente.
 
 ## Paso 2. Definir el identificador de instancia
@@ -44,7 +48,7 @@ Si querés que la licencia quede atada a un cliente o instalación concreta, def
 Ese mismo valor debe existir en:
 
 - la licencia emitida
-- `Licensing__InstanceId` en el despliegue
+- `SCSQL_LICENSING_INSTANCE_ID` en el despliegue
 
 ## Paso 3. Emitir una licencia
 
@@ -85,52 +89,51 @@ Copiá la plantilla y completala:
 
 ```bash
 cd /Users/pdiblasi/Desarrollos/scsql
-cp licensing.env.example licensing.env
+cp .env.production.example .env.production
 ```
 
-Editar `licensing.env` con:
+Editar `.env.production` con:
 
-- `LICENSING_REQUIRE_VALID_LICENSE=true`
-- `LICENSING_PRODUCT_CODE=scsql`
-- `LICENSING_INSTANCE_ID=cliente-sa-prod-01`
-- `LICENSING_CURRENT_LICENSE_KEY=<token emitido>`
-- `LICENSING_PUBLIC_KEY_PEM=<contenido de public.pem>`
+- `SCSQL_LICENSING_REQUIRE_VALID_LICENSE=true`
+- `SCSQL_LICENSING_PRODUCT_CODE=scsql`
+- `SCSQL_LICENSING_INSTANCE_ID=cliente-sa-prod-01`
+- `SCSQL_LICENSING_CURRENT_LICENSE_KEY=<token emitido>`
+- `SCSQL_LICENSING_PUBLIC_KEY_PEM=<public.pem en una sola línea con \n>`
 
 ## Paso 5. Cargar la configuración en docker compose
 
 Hay dos formas prácticas.
 
-### Opción A. Variables exportadas en shell
+### Opción A. Archivo `.env.production`
 
 ```bash
-export LICENSING_REQUIRE_VALID_LICENSE=true
-export LICENSING_PRODUCT_CODE=scsql
-export LICENSING_INSTANCE_ID=cliente-sa-prod-01
-export LICENSING_CURRENT_LICENSE_KEY='PEGAR_TOKEN_AQUI'
-export LICENSING_PUBLIC_KEY_PEM="$(cat ~/scsql-license-issuer/public.pem)"
 docker compose up -d --build
 ```
 
-### Opción B. Archivo `licensing.env`
+`docker-compose.yml` ya toma directamente ese archivo mediante `env_file` y además usa defaults razonables para desarrollo cuando el archivo no existe.
 
-Si usás un archivo, cargalo antes de levantar:
+### Opción B. Variables exportadas en shell
+
+Si preferís sobreescribir en sesión:
 
 ```bash
-set -a
-source ./licensing.env
-set +a
+export SCSQL_LICENSING_REQUIRE_VALID_LICENSE=true
+export SCSQL_LICENSING_PRODUCT_CODE=scsql
+export SCSQL_LICENSING_INSTANCE_ID=cliente-sa-prod-01
+export SCSQL_LICENSING_CURRENT_LICENSE_KEY='PEGAR_TOKEN_AQUI'
+export SCSQL_LICENSING_PUBLIC_KEY_PEM="$(awk '{printf "%s\\n", $0}' ~/scsql-license-issuer/public.pem | sed 's/\\n$//')"
 docker compose up -d --build
 ```
 
 ## Paso 6. Ajustar `docker-compose.yml`
 
-El compose actual ya está preparado para recibir estas variables. El servicio `api` usa:
+El compose actual ya está preparado para leer variables simples desde `.env.production`. El servicio `api` mapea internamente:
 
-- `Licensing__RequireValidLicense`
-- `Licensing__ProductCode`
-- `Licensing__PublicKeyPem`
-- `Licensing__CurrentLicenseKey`
-- `Licensing__InstanceId`
+- `SCSQL_LICENSING_REQUIRE_VALID_LICENSE -> Licensing__RequireValidLicense`
+- `SCSQL_LICENSING_PRODUCT_CODE -> Licensing__ProductCode`
+- `SCSQL_LICENSING_PUBLIC_KEY_PEM -> Licensing__PublicKeyPem`
+- `SCSQL_LICENSING_CURRENT_LICENSE_KEY -> Licensing__CurrentLicenseKey`
+- `SCSQL_LICENSING_INSTANCE_ID -> Licensing__InstanceId`
 
 En producción conviene dejar valores reales vía variables de entorno y no hardcodearlos en el YAML.
 
@@ -170,7 +173,7 @@ Si algo falla, los estados más comunes son:
 
 Para una venta mensual no cambiás la clave pública. Solo emitís un token nuevo con nueva fecha de vencimiento y reemplazás:
 
-- `LICENSING_CURRENT_LICENSE_KEY`
+- `SCSQL_LICENSING_CURRENT_LICENSE_KEY`
 
 Luego reiniciás el `api`:
 
@@ -196,10 +199,33 @@ La diferencia comercial no la define el código sino los datos de la licencia em
 - Emití una licencia distinta por cliente.
 - Si un cliente cambia de servidor y usás `instanceId`, reemití la licencia.
 
-## Paso 11. Qué pasa si un cliente intenta alterar el token
+## Paso 11. Emisor visual sin shell
+
+Ruta disponible en frontend:
+
+- `/license-studio`
+
+Qué hace:
+
+- firma localmente en el navegador con `RSASSA-PKCS1-v1_5` + `SHA-256`
+- no llama al backend
+- no persiste la private key
+- genera el mismo formato que valida el backend
+
+Qué necesitás:
+
+- `private-pkcs8.pem`
+- cliente
+- plan
+- fechas
+- `instanceId` si querés atarlo a una instalación
+
+Si pegás una clave `BEGIN RSA PRIVATE KEY`, el navegador no la va a importar. Convertí primero a `BEGIN PRIVATE KEY` con el comando PKCS#8 del paso 1.
+
+## Paso 12. Qué pasa si un cliente intenta alterar el token
 
 No debería poder generar una firma válida sin la clave privada. Puede editar el string, pero el backend lo marcará como `invalid` y bloqueará la operación si el enforcement está activo.
 
-## Paso 12. Límite realista
+## Paso 13. Límite realista
 
 Ningún esquema local es imposible de crackear si alguien modifica binarios y tiene tiempo suficiente. Este enfoque sube mucho la vara técnica y es razonable para comercialización B2B. Si querés endurecerlo más, el siguiente nivel es validación contra un servidor de licencias tuyo.

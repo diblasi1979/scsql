@@ -5,6 +5,7 @@ import ConnectionsView from '@/views/ConnectionsView.vue'
 import ScriptsView from '@/views/ScriptsView.vue'
 import TasksView from '@/views/TasksView.vue'
 import ExecutionsView from '@/views/ExecutionsView.vue'
+import LicenseStudioView from '@/views/LicenseStudioView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,12 +16,15 @@ const router = createRouter({
     { path: '/scripts', name: 'scripts', component: ScriptsView },
     { path: '/tasks', name: 'tasks', component: TasksView },
     { path: '/executions', name: 'executions', component: ExecutionsView },
+    { path: '/license-studio', name: 'license-studio', component: LicenseStudioView },
   ],
 })
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('scsql-token')
-  if (to.name !== 'login' && !token) {
+  const publicRoutes = new Set(['login', 'license-studio'])
+
+  if (!publicRoutes.has(String(to.name)) && !token) {
     return { name: 'login' }
   }
 

@@ -20,26 +20,29 @@ services:
     build:
       context: .
       dockerfile: backend/src/ScSql.Api/Dockerfile
+    env_file:
+      - path: ./.env.production
+        required: false
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      TZ: America/Argentina/Buenos_Aires
-      ConnectionStrings__InternalDatabase: server=mysql-internal;port=3306;database=scsql;user=scsql;password=scsqlpass
-      Jwt__Issuer: scsql-api
-      Jwt__Audience: scsql-admin
-      Jwt__Key: change-this-in-production-with-a-long-random-key
-      AdminUser__Username: admin
-      AdminUser__Password: admin123
-      Storage__RootPath: /app/storage
-      Storage__SqlPath: /app/storage/sql
-      Scheduler__PollSeconds: 5
-      Scheduler__CatchUpWindowDays: 7
-      Scheduler__TimeZoneId: America/Argentina/Buenos_Aires
-      ConnectionSecurity__EncryptionKey: scsql-dev-connection-key-change-in-production
-      Licensing__RequireValidLicense: "false"
-      Licensing__ProductCode: scsql
-      Licensing__PublicKeyPem: ""
-      Licensing__CurrentLicenseKey: ""
-      Licensing__InstanceId: ""
+      ASPNETCORE_ENVIRONMENT: ${SCSQL_ASPNETCORE_ENVIRONMENT:-Production}
+      TZ: ${SCSQL_TZ:-America/Argentina/Buenos_Aires}
+      ConnectionStrings__InternalDatabase: ${SCSQL_INTERNAL_DB_CONNECTION:-server=mysql-internal;port=3306;database=scsql;user=scsql;password=scsqlpass}
+      Jwt__Issuer: ${SCSQL_JWT_ISSUER:-scsql-api}
+      Jwt__Audience: ${SCSQL_JWT_AUDIENCE:-scsql-admin}
+      Jwt__Key: ${SCSQL_JWT_KEY:-change-this-in-production-with-a-long-random-key}
+      AdminUser__Username: ${SCSQL_ADMIN_USERNAME:-admin}
+      AdminUser__Password: ${SCSQL_ADMIN_PASSWORD:-admin123}
+      Storage__RootPath: ${SCSQL_STORAGE_ROOT_PATH:-/app/storage}
+      Storage__SqlPath: ${SCSQL_STORAGE_SQL_PATH:-/app/storage/sql}
+      Scheduler__PollSeconds: ${SCSQL_SCHEDULER_POLL_SECONDS:-5}
+      Scheduler__CatchUpWindowDays: ${SCSQL_SCHEDULER_CATCH_UP_WINDOW_DAYS:-7}
+      Scheduler__TimeZoneId: ${SCSQL_SCHEDULER_TIME_ZONE_ID:-America/Argentina/Buenos_Aires}
+      ConnectionSecurity__EncryptionKey: ${SCSQL_CONNECTION_ENCRYPTION_KEY:-scsql-dev-connection-key-change-in-production}
+      Licensing__RequireValidLicense: ${SCSQL_LICENSING_REQUIRE_VALID_LICENSE:-false}
+      Licensing__ProductCode: ${SCSQL_LICENSING_PRODUCT_CODE:-scsql}
+      Licensing__PublicKeyPem: ${SCSQL_LICENSING_PUBLIC_KEY_PEM:-}
+      Licensing__CurrentLicenseKey: ${SCSQL_LICENSING_CURRENT_LICENSE_KEY:-}
+      Licensing__InstanceId: ${SCSQL_LICENSING_INSTANCE_ID:-}
     ports:
       - "2008:2008"
     volumes:
@@ -52,8 +55,11 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    env_file:
+      - path: ./.env.production
+        required: false
     environment:
-      VITE_API_BASE_URL: http://localhost:2008/api
+      VITE_API_BASE_URL: ${SCSQL_VITE_API_BASE_URL:-http://localhost:2008/api}
     ports:
       - "1979:1979"
     depends_on:

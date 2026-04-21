@@ -50,11 +50,9 @@ La base técnica recomendada ya no es una `key` "encriptada" dentro del código,
 
 Variables relevantes:
 
-- `Licensing__RequireValidLicense`: `true` para exigir licencia válida en producción.
-- `Licensing__ProductCode`: código del producto firmado en la licencia. Por defecto `scsql`.
-- `Licensing__PublicKeyPem`: clave pública RSA en formato PEM.
-- `Licensing__CurrentLicenseKey`: token firmado con formato `payload.signature` en base64url.
-- `Licensing__InstanceId`: opcional. Si la licencia viene atada a una instancia, debe coincidir.
+- `docker-compose.yml` consume directamente variables simples desde `.env.production`.
+- La plantilla base está en `.env.production.example`.
+- La clave pública se puede guardar en una sola línea usando `\n`; el backend recompone los saltos de línea al iniciar.
 
 ### Flujo sugerido
 
@@ -69,7 +67,13 @@ Variables relevantes:
 ```bash
 openssl genrsa -out private.pem 2048
 openssl rsa -in private.pem -pubout -out public.pem
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in private.pem -out private-pkcs8.pem -nocrypt
 ```
+
+Notas:
+
+- `public.pem` se usa en el despliegue productivo.
+- `private-pkcs8.pem` sirve para el emisor visual del panel, porque el navegador importa claves PKCS#8.
 
 ### Emitir licencia perpetua
 
@@ -97,6 +101,7 @@ SCSQL_LICENSE_PRIVATE_KEY=./private.pem qa/generate-license-token.sh \
 - Endpoint público: `GET /api/license/status`
 - Login y panel muestran el estado actual de la licencia.
 - El scheduler no reclama tareas nuevas cuando la licencia requerida no es válida.
+- El frontend incluye un emisor visual en `/license-studio` para generar licencias sin shell.
 
 ## Ejecutar con Docker
 

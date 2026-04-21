@@ -14,6 +14,7 @@
         <RouterLink to="/scripts">Scripts</RouterLink>
         <RouterLink to="/tasks">Tareas</RouterLink>
         <RouterLink to="/executions">Historial</RouterLink>
+        <RouterLink to="/license-studio">Licencias</RouterLink>
       </nav>
       <div class="sidebar-footer">
         <div v-if="license.status" class="license-badge" :class="`license-badge--${license.status.state}`">
