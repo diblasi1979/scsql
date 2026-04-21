@@ -3,8 +3,8 @@
     <aside v-if="auth.isAuthenticated" class="sidebar">
       <div class="sidebar-top">
         <div class="brand-lockup">
-          <p class="eyebrow">SQL crew control</p>
-          <h1>SCSQL</h1>
+          <p class="eyebrow">Novent orchestration</p>
+          <h1>Novent</h1>
           <p class="sidebar-tagline">Tareas, scripts y ejecuciones en un panel con ritmo propio.</p>
         </div>
       </div>

@@ -2,7 +2,7 @@
   <section class="login-view">
     <div class="login-stage">
       <article class="login-showcase">
-        <p class="eyebrow">SQL crew control</p>
+        <p class="eyebrow">Novent orchestration</p>
         <h1>Automatizá la operación con una cabina más clara y más elegante.</h1>
         <p class="login-copy login-copy--hero">
           Centralizá conexiones, scripts, tareas programadas y monitoreo desde un panel pensado para operación diaria.
