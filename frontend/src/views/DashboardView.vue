@@ -1,5 +1,5 @@
 <template>
-  <section class="view-stack">
+  <section class="view-stack view-stack--dashboard">
     <header class="page-header">
       <div>
         <p class="eyebrow">Resumen operativo</p>
