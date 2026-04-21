@@ -154,6 +154,45 @@ pre {
   gap: 1rem;
 }
 
+.license-badge {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.license-badge__label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 245, 251, 0.7);
+}
+
+.license-badge strong,
+.license-badge span {
+  color: #fff8fe;
+}
+
+.license-badge span {
+  font-size: 0.84rem;
+  color: rgba(255, 245, 251, 0.78);
+}
+
+.license-badge--active,
+.license-badge--disabled {
+  background: rgba(15, 157, 122, 0.18);
+}
+
+.license-badge--expired,
+.license-badge--invalid,
+.license-badge--missing,
+.license-badge--notYetActive {
+  background: rgba(230, 75, 99, 0.18);
+}
+
 .brand-lockup {
   display: grid;
   gap: 0.4rem;
@@ -209,6 +248,41 @@ pre {
 .content--authless {
   padding: 0;
   min-height: 100vh;
+}
+
+.license-panel {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0 1.2rem;
+  padding: 0.95rem 1rem;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.license-panel--active,
+.license-panel--disabled {
+  border-color: rgba(15, 157, 122, 0.35);
+  background: rgba(15, 157, 122, 0.08);
+}
+
+.license-panel--expired,
+.license-panel--invalid,
+.license-panel--missing,
+.license-panel--notYetActive {
+  border-color: rgba(230, 75, 99, 0.35);
+  background: rgba(230, 75, 99, 0.08);
+}
+
+.license-panel p,
+.license-panel strong {
+  margin: 0;
+}
+
+.license-panel__eyebrow,
+.license-panel__meta {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .content--decorated::before {

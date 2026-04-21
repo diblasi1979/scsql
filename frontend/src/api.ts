@@ -92,3 +92,22 @@ export type ExecutionRecord = {
   durationMs?: number | null
   rowsAffected?: number | null
 }
+
+export type LicenseState = 'disabled' | 'active' | 'missing' | 'invalid' | 'expired' | 'notYetActive'
+export type LicensePlan = 'perpetual' | 'subscription'
+
+export type LicenseStatus = {
+  state: LicenseState
+  enforcementEnabled: boolean
+  isValid: boolean
+  shouldBlock: boolean
+  message: string
+  productCode: string
+  customerName?: string | null
+  instanceId?: string | null
+  plan?: LicensePlan | null
+  planLabel: string
+  issuedAtUtc?: string | null
+  notBeforeUtc?: string | null
+  expiresAtUtc?: string | null
+}

@@ -35,6 +35,11 @@ services:
       Scheduler__CatchUpWindowDays: 7
       Scheduler__TimeZoneId: America/Argentina/Buenos_Aires
       ConnectionSecurity__EncryptionKey: scsql-dev-connection-key-change-in-production
+      Licensing__RequireValidLicense: "false"
+      Licensing__ProductCode: scsql
+      Licensing__PublicKeyPem: ""
+      Licensing__CurrentLicenseKey: ""
+      Licensing__InstanceId: ""
     ports:
       - "2008:2008"
     volumes:

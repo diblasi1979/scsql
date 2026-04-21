@@ -499,17 +499,20 @@ public static class TaskParameterValueParser
 public sealed class ExecutionService
 {
     private readonly AppDbContext _dbContext;
+    private readonly LicenseService _licenseService;
     private readonly SqlFileStore _sqlFileStore;
     private readonly IReadOnlyDictionary<DatabaseEngine, IDatabaseExecutionEngine> _engines;
     private readonly ExecutionCoordinator _executionCoordinator;
 
     public ExecutionService(
         AppDbContext dbContext,
+        LicenseService licenseService,
         SqlFileStore sqlFileStore,
         IEnumerable<IDatabaseExecutionEngine> engines,
         ExecutionCoordinator executionCoordinator)
     {
         _dbContext = dbContext;
+        _licenseService = licenseService;
         _sqlFileStore = sqlFileStore;
         _engines = engines.ToDictionary(engine => engine.Engine);
         _executionCoordinator = executionCoordinator;
@@ -517,6 +520,12 @@ public sealed class ExecutionService
 
     public async Task<ExecutionRecord> RunTaskAsync(Guid taskId, bool manualTrigger, CancellationToken cancellationToken)
     {
+        var licenseSnapshot = _licenseService.GetSnapshot();
+        if (licenseSnapshot.ShouldBlock)
+        {
+            throw new InvalidOperationException(licenseSnapshot.Message);
+        }
+
         if (!_executionCoordinator.TryStart(taskId))
         {
             throw new InvalidOperationException("La tarea ya se encuentra en ejecución.");
@@ -629,18 +638,25 @@ public sealed class ExecutionService
 public sealed class SchedulerService
 {
     private readonly AppDbContext _dbContext;
+    private readonly LicenseService _licenseService;
     private readonly SchedulerOptions _options;
     private readonly TimeZoneInfo _timeZone;
 
-    public SchedulerService(AppDbContext dbContext, IOptions<SchedulerOptions> options)
+    public SchedulerService(AppDbContext dbContext, LicenseService licenseService, IOptions<SchedulerOptions> options)
     {
         _dbContext = dbContext;
+        _licenseService = licenseService;
         _options = options.Value;
         _timeZone = ResolveTimeZone(_options.TimeZoneId);
     }
 
     public async Task<IReadOnlyList<Guid>> ClaimDueTasksAsync(DateTimeOffset now, CancellationToken cancellationToken)
     {
+        if (_licenseService.GetSnapshot(now).ShouldBlock)
+        {
+            return [];
+        }
+
         var tasks = await _dbContext.Tasks
             .Where(candidate => candidate.Automatic && candidate.Enabled)
             .OrderBy(candidate => candidate.CreatedAtUtc)

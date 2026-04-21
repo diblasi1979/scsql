@@ -35,6 +35,69 @@ SCSQL es un planificador de consultas SQL y stored procedures con backend en ASP
 - No hay aún reemplazo masivo, versionado o papelera para conexiones y scripts eliminados.
 - No hay refresh token, auditoría de cambios ni control de concurrencia distribuida.
 
+## Licenciamiento comercial
+
+La base técnica recomendada ya no es una `key` "encriptada" dentro del código, porque eso se termina pudiendo extraer o parchear. En su lugar, SCSQL ahora soporta licencias firmadas digitalmente por RSA:
+
+- La aplicación distribuida contiene solo la clave pública para verificar licencias.
+- La clave privada queda del lado del vendedor para emitir nuevas licencias.
+- Se soportan dos modalidades:
+	- `perpetual`: licencia definitiva, sin vencimiento.
+	- `subscription`: licencia mensual o por período, con `expiresAtUtc`.
+- Si `Licensing:RequireValidLicense=true`, el backend bloquea login, operaciones del API y ejecuciones automáticas/manuales cuando la licencia es inválida, falta o está vencida.
+
+### Configuración de despliegue
+
+Variables relevantes:
+
+- `Licensing__RequireValidLicense`: `true` para exigir licencia válida en producción.
+- `Licensing__ProductCode`: código del producto firmado en la licencia. Por defecto `scsql`.
+- `Licensing__PublicKeyPem`: clave pública RSA en formato PEM.
+- `Licensing__CurrentLicenseKey`: token firmado con formato `payload.signature` en base64url.
+- `Licensing__InstanceId`: opcional. Si la licencia viene atada a una instancia, debe coincidir.
+
+### Flujo sugerido
+
+1. Generar un par RSA fuera del entorno entregado al cliente.
+2. Conservar la privada en un entorno de emisión controlado.
+3. Cargar la pública en el despliegue de SCSQL.
+4. Emitir un token por cliente con `qa/generate-license-token.sh`.
+5. Configurar el token emitido como `Licensing__CurrentLicenseKey`.
+
+### Generación de claves
+
+```bash
+openssl genrsa -out private.pem 2048
+openssl rsa -in private.pem -pubout -out public.pem
+```
+
+### Emitir licencia perpetua
+
+```bash
+SCSQL_LICENSE_PRIVATE_KEY=./private.pem qa/generate-license-token.sh \
+	--customer "Cliente SA" \
+	--plan perpetual \
+	--issued-at 2026-04-21T00:00:00Z \
+	--instance-id cliente-sa-prod-01
+```
+
+### Emitir licencia mensual
+
+```bash
+SCSQL_LICENSE_PRIVATE_KEY=./private.pem qa/generate-license-token.sh \
+	--customer "Cliente SA" \
+	--plan subscription \
+	--issued-at 2026-04-21T00:00:00Z \
+	--expires-at 2026-05-21T00:00:00Z \
+	--instance-id cliente-sa-prod-01
+```
+
+### Estado operativo
+
+- Endpoint público: `GET /api/license/status`
+- Login y panel muestran el estado actual de la licencia.
+- El scheduler no reclama tareas nuevas cuando la licencia requerida no es válida.
+
 ## Ejecutar con Docker
 
 ```bash
@@ -84,6 +147,7 @@ Credenciales por defecto:
 - Demo funcional reproducible: `qa/run-end-to-end-demo.sh`
 - Validación del scheduler automático: `qa/run-scheduler-check.sh`
 - Guía de uso: `qa/README.md`
+- Activación comercial de licencias: `LICENSING.md`
 
 ## Changelog
 

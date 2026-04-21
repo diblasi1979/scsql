@@ -4,6 +4,20 @@ Este proyecto sigue una variante pragmática de Semantic Versioning.
 
 ## Unreleased
 
+### Added
+
+- Validación de licencias firmadas con RSA en el backend con soporte para planes `perpetual` y `subscription`.
+- Endpoint público `GET /api/license/status` para consultar el estado operativo de la licencia instalada.
+- Store y componentes visuales en frontend para mostrar el estado de licencia en login y sidebar.
+- Script `qa/generate-license-token.sh` para emitir tokens de licencia firmados fuera del runtime del producto.
+- Guía operativa `LICENSING.md` y plantilla `licensing.env.example` para activar licencias comerciales en despliegues Docker.
+
+### Changed
+
+- El API ahora puede bloquear autenticación y operaciones administrativas cuando `Licensing__RequireValidLicense=true` y la licencia es inválida, falta o está vencida.
+- El scheduler dejó de reclamar nuevas ejecuciones automáticas cuando la licencia requerida no es válida.
+- `docker-compose.yml` y `appsettings.json` ahora exponen configuración explícita para el módulo de licenciamiento.
+
 ## v0.2.0 - 2026-04-19
 
 ### Added

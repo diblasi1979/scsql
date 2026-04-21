@@ -15,6 +15,7 @@ builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection("A
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
 builder.Services.Configure<SchedulerOptions>(builder.Configuration.GetSection("Scheduler"));
 builder.Services.Configure<ConnectionSecurityOptions>(builder.Configuration.GetSection("ConnectionSecurity"));
+builder.Services.Configure<LicensingOptions>(builder.Configuration.GetSection("Licensing"));
 
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -71,6 +72,7 @@ builder.Services.AddScoped<ExecutionService>();
 builder.Services.AddScoped<SchedulerService>();
 builder.Services.AddScoped<ApplicationBootstrapper>();
 builder.Services.AddSingleton<ConnectionSecretProtector>();
+builder.Services.AddSingleton<LicenseService>();
 builder.Services.AddSingleton<SqlFileStore>();
 builder.Services.AddSingleton<ExecutionCoordinator>();
 builder.Services.AddSingleton<IDatabaseExecutionEngine, MySqlExecutionEngine>();
@@ -88,6 +90,37 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("frontend");
+app.Use(async (context, next) =>
+{
+    if (!context.Request.Path.StartsWithSegments("/api"))
+    {
+        await next();
+        return;
+    }
+
+    if (context.Request.Path.StartsWithSegments("/api/health")
+        || context.Request.Path.StartsWithSegments("/api/license/status"))
+    {
+        await next();
+        return;
+    }
+
+    var licenseService = context.RequestServices.GetRequiredService<LicenseService>();
+    var snapshot = licenseService.GetSnapshot();
+    if (!snapshot.ShouldBlock)
+    {
+        await next();
+        return;
+    }
+
+    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+    await context.Response.WriteAsJsonAsync(new
+    {
+        code = "license_invalid",
+        status = snapshot.State,
+        message = snapshot.Message
+    }, cancellationToken: context.RequestAborted);
+});
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -95,6 +128,11 @@ app.MapGet("/api/health", async (AppDbContext dbContext, CancellationToken cance
 {
     var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
     return Results.Ok(new { status = canConnect ? "ok" : "degraded" });
+});
+
+app.MapGet("/api/license/status", (LicenseService licenseService) =>
+{
+    return Results.Ok(licenseService.GetStatus());
 });
 
 app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService, CancellationToken cancellationToken) =>
